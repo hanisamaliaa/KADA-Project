@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { Shield, Eye, EyeOff } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import toast from 'react-hot-toast'
@@ -45,24 +46,41 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-dark-950 via-dark-900 to-primary-950">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950">
+      <motion.div
+        initial={{ opacity: 0, y: 24, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+        className="max-w-md w-full space-y-8"
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.4 }}
+          className="text-center"
+        >
           <div className="flex justify-center">
-            <Shield className="h-12 w-12 text-primary-500" />
+            <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-500/20">
+              <Shield className="h-8 w-8 text-white" />
+            </div>
           </div>
-          <h2 className="mt-6 text-3xl font-display font-bold">
+          <h2 className="mt-6 text-3xl font-display font-bold text-white">
             Admin Portal
           </h2>
-          <p className="mt-2 text-slate-400">
+          <p className="mt-2 text-neutral-400">
             Sign in to access the admin dashboard
           </p>
-        </div>
+        </motion.div>
 
-        <div className="card p-8">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+          className="card p-8"
+        >
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-slate-300 mb-2">
+              <label htmlFor="username" className="block text-sm font-medium text-neutral-300 mb-2">
                 Username
               </label>
               <input
@@ -74,12 +92,12 @@ export default function AdminLoginPage() {
                 placeholder="Enter admin username"
               />
               {errors.username && (
-                <p className="mt-1 text-sm text-red-400">{errors.username.message}</p>
+                <p className="mt-1.5 text-sm text-red-400">{errors.username.message}</p>
               )}
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-neutral-300 mb-2">
                 Password
               </label>
               <div className="relative">
@@ -97,39 +115,41 @@ export default function AdminLoginPage() {
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-slate-400" />
+                    <EyeOff className="h-5 w-5 text-neutral-500 hover:text-neutral-300 transition-colors" />
                   ) : (
-                    <Eye className="h-5 w-5 text-slate-400" />
+                    <Eye className="h-5 w-5 text-neutral-500 hover:text-neutral-300 transition-colors" />
                   )}
                 </button>
               </div>
               {errors.password && (
-                <p className="mt-1 text-sm text-red-400">{errors.password.message}</p>
+                <p className="mt-1.5 text-sm text-red-400">{errors.password.message}</p>
               )}
             </div>
 
             <div>
-              <button
+              <motion.button
                 type="submit"
                 disabled={loading}
                 className="btn btn-primary w-full text-lg py-3"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
               >
                 {loading ? (
                   <LoadingSpinner size="sm" />
                 ) : (
                   'Sign In'
                 )}
-              </button>
+              </motion.button>
             </div>
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-slate-400 text-sm">
+            <p className="text-neutral-500 text-sm">
               Demo admin: admin@cinematix.test / admin123
             </p>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </div>
   )
 }
