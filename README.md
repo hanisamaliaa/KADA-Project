@@ -1,2 +1,2 @@
-# KADA-Project
-Basic HTML, CSS, JS, React
+# Cinema Web
+Basic HTML, CSS, JS, React, MERN
