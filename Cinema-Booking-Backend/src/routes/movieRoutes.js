@@ -1,87 +1,34 @@
 const express = require("express");
 const router = express.Router();
+const requireAdmin = require("../middlewares/requireAdmin");
+const authenticate = require("../middlewares/authenticate");
 
-const Movie = require("../models/Movie");
+const {
+  getMovies,
+  getMovieDetail,
+  createMovie,
+  updateMovie,
+  deleteMovie,
+} = require("../controllers/movieController");
 
 // GET /api/movies
 // Public - List all movies
-router.get("/", async (req, res) => {
-  try {
-    const movies = await Movie.find();
-    res.status(200).json(movies);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+router.get("/", getMovies);
 
 // GET /api/movies/:id
 // Public - Get one movie
-router.get("/:id", async (req, res) => {
-  try {
-    const movie = await Movie.findById(req.params.id);
-
-    if (!movie) {
-      return res.status(404).json({
-        message: "Movie not found",
-      });
-    }
-
-    res.status(200).json(movie);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+router.get("/:id", getMovieDetail);
 
 // POST /api/movies
 // Admin - Create movie
-router.post("/", async (req, res) => {
-  try {
-    const movie = await Movie.create(req.body);
-
-    res.status(201).json(movie);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
+router.post("/", authenticate, requireAdmin, createMovie);
 
 // PUT /api/movies/:id
 // Admin - Update movie
-router.put("/:id", async (req, res) => {
-  try {
-    const movie = await Movie.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
-
-    if (!movie) {
-      return res.status(404).json({
-        message: "Movie not found",
-      });
-    }
-
-    res.status(200).json(movie);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
+router.put("/:id", authenticate, requireAdmin, updateMovie);
 
 // DELETE /api/movies/:id
 // Admin - Delete movie
-router.delete("/:id", async (req, res) => {
-  try {
-    const movie = await Movie.findByIdAndDelete(req.params.id);
-
-    if (!movie) {
-      return res.status(404).json({
-        message: "Movie not found",
-      });
-    }
-
-    res.status(200).json({
-      message: "Movie deleted successfully",
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+router.delete("/:id", authenticate, requireAdmin, deleteMovie);
 
 module.exports = router;
