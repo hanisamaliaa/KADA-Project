@@ -14,7 +14,13 @@ const getShowtimes = async (req, res) => {
     // Filter berdasarkan tanggal (opsional)
     if (req.query.date) {
       const start = new Date(req.query.date);
-      const end = new Date(req.query.date);
+      if (Number.isNaN(start.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid date query parameter. Use ISO format (YYYY-MM-DD).",
+        });
+      }
+      const end = new Date(start);
       end.setDate(end.getDate() + 1);
 
       filter.date = {
