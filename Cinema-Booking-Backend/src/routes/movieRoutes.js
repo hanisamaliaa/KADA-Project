@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const requireAdmin = require("../middlewares/requireAdmin");
+const authenticate = require("../middlewares/authenticate");
 
 const {
   getMovies,
@@ -20,14 +21,14 @@ router.get("/:id", getMovieDetail);
 
 // POST /api/movies
 // Admin - Create movie
-router.post("/", requireAdmin, createMovie);
+router.post("/", authenticate, requireAdmin, createMovie);
 
 // PUT /api/movies/:id
 // Admin - Update movie
-router.put("/:id", requireAdmin, updateMovie);
+router.put("/:id", authenticate, requireAdmin, updateMovie);
 
 // DELETE /api/movies/:id
 // Admin - Delete movie
-router.delete("/:id", requireAdmin, deleteMovie);
+router.delete("/:id", authenticate, requireAdmin, deleteMovie);
 
 module.exports = router;
