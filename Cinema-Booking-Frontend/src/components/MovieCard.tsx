@@ -57,11 +57,11 @@ export default function MovieCard({ movie }: MovieCardProps) {
         </div>
       </div>
 
-      <div className="p-4.5 flex flex-col flex-grow">
-        <h3 className="mb-2.5 line-clamp-2 text-[15px] font-display font-semibold text-white group-hover:text-primary-400 transition-colors duration-300">
+      <div className="p-5 flex flex-col flex-grow">
+        <h3 className="mb-3 line-clamp-2 text-[15px] font-display font-semibold text-white group-hover:text-primary-400 transition-colors duration-300">
           {movie.title}
         </h3>
-        <div className="flex items-center gap-4 text-xs text-neutral-500 mb-3">
+        <div className="flex items-center gap-4 text-xs text-neutral-500 mb-4">
           <div className="flex items-center gap-1.5">
             <Clock className="h-3.5 w-3.5" />
             <span>{movie.duration} min</span>
@@ -71,7 +71,7 @@ export default function MovieCard({ movie }: MovieCardProps) {
             <span>{releaseYear}</span>
           </div>
         </div>
-        <div className="mb-4 flex flex-wrap gap-1.5">
+        <div className="mb-6 flex flex-wrap gap-1.5">
           <span className="rounded-lg bg-white/[0.04] px-2.5 py-1 text-[10px] font-medium text-neutral-300 border border-white/[0.06]">{movie.genre}</span>
           {isComingSoon && (
             <span className="rounded-lg bg-accent-500/10 px-2.5 py-1 text-[10px] font-medium text-accent-400 border border-accent-500/20">
