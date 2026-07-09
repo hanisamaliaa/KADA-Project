@@ -3,6 +3,7 @@ import { Search, Filter } from 'lucide-react';
 import { IMovie } from '@/types';
 import MovieCard from '@/components/MovieCard';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import ErrorMessage from '@/components/ErrorMessage';
 import { movieService } from '@/services/movieService';
 
 export default function MoviesPage() {
@@ -145,7 +146,11 @@ export default function MoviesPage() {
           </select>
         </div>
 
-        {error && <div className="card p-4 mb-8 text-red-300 border-red-500/40">{error}</div>}
+        {error && (
+          <div className="mb-8">
+            <ErrorMessage message={error} onRetry={fetchMovies} />
+          </div>
+        )}
 
         {/* Movies Grid */}
         {filteredMovies.length > 0 ? (
