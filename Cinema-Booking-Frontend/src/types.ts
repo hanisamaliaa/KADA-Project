@@ -65,6 +65,23 @@ export interface MovieFilters {
   genre?: string;
   status?: 'all' | 'now_showing' | 'coming_soon';
   sort?: 'title' | 'release_date' | 'rating';
+  page?: number;
+  limit?: number;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  page: number;
+  limit: number;
+  totalItems: number;
+  totalPages: number;
+}
+
+export interface MovieQueryParams {
+  search: string;
+  genre: string;
+  page: number;
+  limit: number;
 }
 
 export interface ShowtimeInput {

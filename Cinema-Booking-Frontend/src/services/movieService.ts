@@ -1,4 +1,4 @@
-import type { IMovie, MovieFilters } from '@/types';
+import type { IMovie, MovieFilters, PaginatedResponse } from '@/types';
 import { delay, mockStore } from './mockStore';
 
 const sortMovies = (movies: IMovie[], sort?: MovieFilters['sort']) => {
@@ -36,6 +36,34 @@ export const movieService = {
       movies = movies.filter((movie) => movie.status === filters.status);
     }
     return sortMovies(movies, filters.sort);
+  },
+
+  async getMoviesPaginated(filters: MovieFilters = {}): Promise<PaginatedResponse<IMovie>> {
+    await delay();
+    let movies = mockStore.getMovies();
+    if (filters.search) {
+      const query = filters.search.toLowerCase();
+      movies = movies.filter(
+        (movie) =>
+          movie.title.toLowerCase().includes(query) ||
+          movie.description.toLowerCase().includes(query) ||
+          movie.genre.toLowerCase().includes(query),
+      );
+    }
+    if (filters.genre) {
+      movies = movies.filter((movie) => movie.genre === filters.genre);
+    }
+    if (filters.status && filters.status !== 'all') {
+      movies = movies.filter((movie) => movie.status === filters.status);
+    }
+    const sorted = sortMovies(movies, filters.sort);
+    const totalItems = sorted.length;
+    const page = filters.page || 1;
+    const limit = filters.limit || 10;
+    const totalPages = Math.max(1, Math.ceil(totalItems / limit));
+    const start = (page - 1) * limit;
+    const data = sorted.slice(start, start + limit);
+    return { data, page, limit, totalItems, totalPages };
   },
 
   async getMovieById(id: string) {
