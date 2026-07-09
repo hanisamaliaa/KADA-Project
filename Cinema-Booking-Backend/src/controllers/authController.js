@@ -43,7 +43,18 @@ const login = async (req, res) => {
   }
 };
 
+const me = async (req, res) => {
+  res.status(200).json({ success: true, data: req.user });
+}
+
+const logout = async (req, res) => {
+  res.clearCookie("token", {httpOnly: true, secure: false, sameSite: "lax"});
+  res.status(200).json({ success: true, message: "Logout successful" });
+}
+
 module.exports = {
   register,
   login,
+  me,
+  logout,
 };
