@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { Calendar, Clock, MapPin, Play, Star, Ticket } from 'lucide-react';
 import { IMovie, IShowtime } from '@/types';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import ErrorMessage from '@/components/ErrorMessage';
 import { movieService } from '@/services/movieService';
 import { showtimeService } from '@/services/showtimeService';
 
@@ -13,6 +14,7 @@ export default function MovieDetailsPage() {
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedShowtime, setSelectedShowtime] = useState<IShowtime | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (id) {
@@ -22,6 +24,8 @@ export default function MovieDetailsPage() {
 
   const fetchMovie = async (movieId: string) => {
     try {
+      setError('');
+      setLoading(true);
       const [movieData, showtimeData] = await Promise.all([
         movieService.getMovieById(movieId),
         showtimeService.getMovieShowtimes(movieId),
@@ -33,6 +37,7 @@ export default function MovieDetailsPage() {
       }
     } catch (error) {
       console.error('Error fetching movie:', error);
+      setError('Unable to load movie details. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -45,6 +50,14 @@ export default function MovieDetailsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <ErrorMessage message={error} onRetry={() => id && fetchMovie(id)} />
       </div>
     );
   }

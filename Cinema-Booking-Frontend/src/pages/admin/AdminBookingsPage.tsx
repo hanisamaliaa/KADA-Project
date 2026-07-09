@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Eye, CheckCircle, XCircle, Download } from 'lucide-react';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import ErrorMessage from '@/components/ErrorMessage';
 import toast from 'react-hot-toast';
 import { adminService } from '@/services/adminService';
 import { movieService } from '@/services/movieService';
@@ -11,6 +12,7 @@ export default function AdminBookingsPage() {
   const [bookings, setBookings] = useState<IBooking[]>([]);
   const [movies, setMovies] = useState<IMovie[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [movieFilter, setMovieFilter] = useState('');
@@ -24,10 +26,11 @@ export default function AdminBookingsPage() {
   const fetchBookings = async () => {
     setLoading(true);
     try {
+      setError('');
       setBookings(await adminService.getAllBookings());
     } catch (error) {
-      toast.error('Failed to load bookings');
       console.error('Error fetching bookings:', error);
+      setError('Unable to load bookings. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -103,6 +106,12 @@ export default function AdminBookingsPage() {
       <div className="flex items-center justify-center h-64">
         <LoadingSpinner size="lg" />
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <ErrorMessage message={error} onRetry={fetchBookings} />
     );
   }
 
