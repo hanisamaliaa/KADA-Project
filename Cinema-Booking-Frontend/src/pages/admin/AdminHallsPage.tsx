@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { Plus, Edit, Trash2, Building } from 'lucide-react';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import ErrorMessage from '@/components/ErrorMessage';
 import toast from 'react-hot-toast';
 import { showtimeService } from '@/services/showtimeService';
 
@@ -151,6 +152,7 @@ const DeleteConfirmationModal: React.FC<DeleteModalProps> = ({ hall, onClose, on
 export default function AdminHallsPage() {
   const [halls, setHalls] = useState<IHall[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingHall, setEditingHall] = useState<IHall | null>(null);
   const [hallToDelete, setHallToDelete] = useState<IHall | null>(null);
@@ -162,10 +164,12 @@ export default function AdminHallsPage() {
   const fetchHalls = async () => {
     setLoading(true);
     try {
+      setError('');
       const data = await showtimeService.getHalls();
       setHalls(data || []);
     } catch (error) {
-      toast.error('Failed to load halls');
+      console.error('Error fetching halls:', error);
+      setError('Unable to load halls. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -207,6 +211,12 @@ export default function AdminHallsPage() {
       <div className="flex items-center justify-center h-64">
         <LoadingSpinner size="lg" />
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <ErrorMessage message={error} onRetry={fetchHalls} />
     );
   }
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Film, Building, Calendar, Users, TrendingUp } from 'lucide-react'
 
 import LoadingSpinner from '@/components/LoadingSpinner'
+import ErrorMessage from '@/components/ErrorMessage'
 import { useNavigate } from 'react-router-dom';
 import { adminService } from '@/services/adminService';
 
@@ -32,6 +33,7 @@ export default function AdminDashboardPage() {
     popularMovies: []
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     fetchDashboardStats();
@@ -39,9 +41,11 @@ export default function AdminDashboardPage() {
 
   const fetchDashboardStats = async () => {
     try {
+      setError('');
       setStats(await adminService.getDashboardStats());
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
+      setError('Unable to load dashboard data. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -52,6 +56,12 @@ export default function AdminDashboardPage() {
       <div className="flex items-center justify-center h-64">
         <LoadingSpinner size="lg" />
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <ErrorMessage message={error} onRetry={fetchDashboardStats} />
     );
   }
 
