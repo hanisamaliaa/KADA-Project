@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Calendar, Clock, MapPin, Users, Ticket, ArrowLeft, User, Mail } from 'lucide-react';
 import { IBooking } from '@/types';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import ErrorMessage from '@/components/ErrorMessage';
 import toast from 'react-hot-toast';
 import { adminService } from '@/services/adminService';
 
@@ -11,6 +12,7 @@ export default function AdminBookingDetailsPage() {
   const navigate = useNavigate();
   const [booking, setBooking] = useState<IBooking | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (id) {
@@ -20,12 +22,12 @@ export default function AdminBookingDetailsPage() {
 
   const fetchBookingDetails = async (bookingId: string) => {
     try {
+      setError('');
       const data = await adminService.getBookingById(bookingId);
       setBooking(data);
     } catch (error) {
-      toast.error('Could not load booking details.');
       console.error(error);
-      navigate('/admin/bookings');
+      setError('Unable to load booking details. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -35,6 +37,20 @@ export default function AdminBookingDetailsPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center p-8">
+        <ErrorMessage
+          message={error}
+          onRetry={() => id && fetchBookingDetails(id)}
+        />
+        <Link to="/admin/bookings" className="btn btn-primary mt-4">
+          Back to Bookings
+        </Link>
       </div>
     );
   }

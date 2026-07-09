@@ -5,6 +5,7 @@ import { ArrowLeft, CreditCard, Landmark, QrCode, ShieldCheck, Wallet } from 'lu
 import { IMovie, IShowtime } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import ErrorMessage from '@/components/ErrorMessage';
 import toast from 'react-hot-toast';
 import BookingProgress from '@/components/BookingProgress';
 import { movieService } from '@/services/movieService';
@@ -29,6 +30,7 @@ export default function PaymentPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [bookingData, setBookingData] = useState<{
     movie: IMovie;
     showtime: IShowtime;
@@ -48,6 +50,7 @@ export default function PaymentPage() {
 
   const loadBookingData = async () => {
     try {
+      setError('');
       const selectionData = sessionStorage.getItem('seatSelection');
       if (!selectionData) {
         toast.error('No booking data found');
@@ -69,8 +72,7 @@ export default function PaymentPage() {
       });
     } catch (error) {
       console.error('Error loading booking data:', error);
-      toast.error('Failed to load booking data');
-      navigate('/movies');
+      setError('Unable to load booking data. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -106,6 +108,14 @@ export default function PaymentPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-dark-900">
         <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-dark-900">
+        <ErrorMessage message={error} onRetry={loadBookingData} />
       </div>
     );
   }

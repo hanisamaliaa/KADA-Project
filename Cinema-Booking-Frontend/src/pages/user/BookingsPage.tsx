@@ -4,6 +4,7 @@ import { Calendar, Clock, MapPin, Eye, X } from 'lucide-react';
 import { IBooking } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import ErrorMessage from '@/components/ErrorMessage';
 import toast from 'react-hot-toast';
 import { bookingService } from '@/services/bookingService';
 
@@ -11,6 +12,7 @@ export default function BookingsPage() {
   const { user } = useAuth();
   const [bookings, setBookings] = useState<IBooking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -21,11 +23,12 @@ export default function BookingsPage() {
   const fetchBookings = async () => {
     if (!user) return;
     try {
+      setError('');
       const data = await bookingService.getMyBookings(user.id);
       setBookings(data || []);
     } catch (error) {
       console.error('Error fetching bookings:', error);
-      toast.error('Failed to load bookings');
+      setError('Unable to load your bookings. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -61,6 +64,14 @@ export default function BookingsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <ErrorMessage message={error} onRetry={fetchBookings} />
       </div>
     );
   }
