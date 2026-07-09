@@ -47,9 +47,7 @@ try {
     });
     }
 
-    // STEP 3 — Cek konflik kursi
-
-    // STEP 4 — Hitung harga di server
+    // STEP 3 — Hitung harga di server
     const totalPrice = showtime.price * uniqueSeats.length;
 
     const updatedShowtime = await Showtime.findOneAndUpdate(
@@ -66,6 +64,12 @@ try {
     // kalau null → ada kursi yang keburu diambil user lain → konflik
     if (!updatedShowtime) {
     const fresh = await Showtime.findById(showtimeId);
+    if (!fresh) {
+         return res.status(404).json({
+             success: false,
+             message: "Showtime not found.",
+         });
+     }
     const unavailable = uniqueSeats.filter((s) => fresh.bookedSeats.includes(s));
     return res.status(409).json({
         success: false,
@@ -74,17 +78,26 @@ try {
     });
     }
 
-    // STEP 5 — Simpan booking
-    const booking = await Booking.create({
+    // STEP 4  — Simpan booking (kursi sudah ter-reserve di atas)
+    let booking;
+    try {
+    booking = await Booking.create({
         userId: req.user.userId,
         movieId: showtime.movieId,
         showtimeId,
-        seats : uniqueSeats,
+        seats: uniqueSeats,
         totalPrice,
     });
+    } catch (err) {
+    // rollback: lepas kursi yang tadi sudah di-reserve, supaya tak ada kursi "hantu"
+    await Showtime.findByIdAndUpdate(showtimeId, {
+        $pull: { bookedSeats: { $in: uniqueSeats } },
+    });
+    throw err; // teruskan ke catch luar → 500
+    }
 
 
-    // STEP 7 — Response
+    // STEP 5 — Response
     res.status(201).json({
         success: true,
         data: booking,
