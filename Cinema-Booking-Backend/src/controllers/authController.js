@@ -2,6 +2,8 @@ const authService = require("../services/authService");
 
 const generateToken = require("../utils/generateToken");
 
+const User = require("../models/User");
+
 const cookieOptions = {
   httpOnly: true,
   secure: false, // Set to true if using HTTPS
@@ -44,8 +46,10 @@ const login = async (req, res) => {
 };
 
 const me = async (req, res) => {
-  res.status(200).json({ success: true, data: req.user });
-}
+  const user = await User.findById(req.user.userId).select("-password");
+  if (!user) return res.status(404).json({ success: false, message: "User not found" });
+  res.status(200).json({ success: true, data: user }); // { _id, name, email, role }
+};
 
 const logout = async (req, res) => {
   res.clearCookie("token", {httpOnly: true, secure: false, sameSite: "lax"});
