@@ -110,6 +110,13 @@ const createShowtime = async (req, res) => {
       });
     }
 
+    if (req.body.price <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Price must be greater than 0",
+      });
+    }
+
     const showtime = await Showtime.create(req.body);
 
     res.status(201).json({
@@ -131,18 +138,28 @@ const updateShowtime = async (req, res) => {
     if (req.body.movieId) {
       const movie = await Movie.findById(req.body.movieId);
       if (!movie) {
-        return res.status(400).json({ success: false, message: "Movie not found" });
+        return res
+          .status(400)
+          .json({ success: false, message: "Movie not found" });
       }
     }
 
-    const showtime = await Showtime.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
+    if (req.body.price !== undefined && req.body.price <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Price must be greater than 0",
+      });
+    }
+
+    const showtime = await Showtime.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true,
+    });
 
     if (!showtime) {
-      return res.status(404).json({ success: false, message: "Showtime not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Showtime not found" });
     }
 
     res.status(200).json({ success: true, data: showtime });
