@@ -254,7 +254,7 @@ a, button, input, select, textarea {
   opacity: 1;
 }
 
-/* Smooth page transitions */
+/* Premium page transitions */
 .page-transition {
   animation: pageIn 0.4s ease-out;
 }
@@ -268,4 +268,139 @@ a, button, input, select, textarea {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* ============================================================
+   ADMIN LIGHT MODE
+   Scoped entirely under .theme-light (applied only on the
+   AdminLayout wrapper). Nothing outside the admin panel is
+   affected — the rest of the site keeps its original dark theme.
+   ============================================================ */
+.theme-light {
+  color-scheme: light;
+}
+
+.theme-light.bg-dark-950,
+.theme-light .bg-dark-950 {
+  background-color: #f4f4f5;
+}
+
+.theme-light .bg-dark-950\/80 {
+  background-color: rgba(244, 244, 245, 0.85);
+}
+
+.theme-light .bg-dark-900 {
+  background-color: #ffffff;
+}
+
+.theme-light .bg-dark-800,
+.theme-light .bg-dark-800\/60,
+.theme-light .bg-dark-800\/40 {
+  background-color: #f1f2f4;
+}
+
+.theme-light .hover\:bg-dark-800\/60:hover,
+.theme-light .hover\:bg-dark-800\/40:hover,
+.theme-light .hover\:bg-dark-700\/60:hover {
+  background-color: #e9eaed;
+}
+
+.theme-light .border-dark-700,
+.theme-light .border-dark-700\/50,
+.theme-light .border-dark-700\/40,
+.theme-light .border-dark-700\/30 {
+  border-color: #e2e3e6;
+}
+
+.theme-light .divide-dark-700\/50 > * + * {
+  border-color: #e2e3e6;
+}
+
+.theme-light .border-white\/\[0\.04\] {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.theme-light .text-white,
+.theme-light .hover\:text-white:hover {
+  color: #18181b;
+}
+
+.theme-light .text-neutral-300,
+.theme-light .hover\:text-neutral-300:hover {
+  color: #3f3f46;
+}
+
+.theme-light .text-neutral-400 {
+  color: #52525b;
+}
+
+.theme-light .text-neutral-500 {
+  color: #71717a;
+}
+
+.theme-light .text-neutral-700 {
+  color: #a1a1aa;
+}
+
+/* Shared component classes (.card, .input, .cinema-badge, etc.) */
+.theme-light .card,
+.theme-light .cinema-panel,
+.theme-light .glass-panel {
+  background-color: #ffffff;
+  border-color: #e4e4e7;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 20px rgba(0, 0, 0, 0.03);
+}
+
+.theme-light .input {
+  background-color: #ffffff;
+  border-color: #d4d4d8;
+  color: #18181b;
+}
+
+.theme-light .input::placeholder {
+  color: #a1a1aa;
+}
+
+.theme-light .btn-secondary {
+  background-color: #ffffff;
+  border-color: #d4d4d8;
+  color: #3f3f46;
+}
+
+.theme-light .btn-ghost {
+  color: #52525b;
+}
+
+.theme-light .cinema-badge {
+  background-color: #f4f4f5;
+  border-color: #e4e4e7;
+  color: #3f3f46;
+}
+
+.theme-light .info-chip {
+  background-color: #f4f4f5;
+  border-color: #e4e4e7;
+  color: #3f3f46;
+}
+
+.theme-light .skeleton {
+  background-color: #eeeef0;
+}
+
+.theme-light .skeleton::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 0, 0, 0.05) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+}
+
+.theme-light ::-webkit-scrollbar-thumb {
+  background-color: #d4d4d8;
+}
+
+.theme-light ::-webkit-scrollbar-thumb:hover {
+  background-color: #a1a1aa;
 }

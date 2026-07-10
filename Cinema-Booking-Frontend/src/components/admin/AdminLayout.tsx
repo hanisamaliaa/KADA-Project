@@ -8,11 +8,14 @@ import {
   LogOut,
   Menu,
   X,
-  BarChart3
+  BarChart3,
+  Sun,
+  Moon
 } from 'lucide-react'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
+import { AdminThemeProvider, useAdminTheme } from '@/contexts/AdminThemeContext'
 import toast from 'react-hot-toast'
 
 const navigation = [
@@ -37,9 +40,10 @@ const overlayVariants = {
   exit: { opacity: 0, transition: { duration: 0.2 } },
 }
 
-export default function AdminLayout() {
+function AdminLayoutContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { signOut, user } = useAuth()
+  const { theme, toggleTheme } = useAdminTheme()
   const location = useLocation()
 
   const handleSignOut = async () => {
@@ -108,7 +112,7 @@ export default function AdminLayout() {
   )
 
   return (
-    <div className="min-h-screen bg-dark-950">
+    <div className={`min-h-screen bg-dark-950 ${theme === 'light' ? 'theme-light' : ''}`}>
       {/* Mobile sidebar */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -168,6 +172,23 @@ export default function AdminLayout() {
               <Menu className="h-6 w-6" />
             </button>
             <div className="flex items-center space-x-4">
+              <button
+                onClick={toggleTheme}
+                aria-label="Toggle theme"
+                className="p-2 rounded-xl text-neutral-400 hover:text-white hover:bg-dark-800/60 transition-all duration-200"
+              >
+                <AnimatePresence mode="wait" initial={false}>
+                  {theme === 'dark' ? (
+                    <motion.span key="sun" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }} className="block">
+                      <Sun className="h-5 w-5" />
+                    </motion.span>
+                  ) : (
+                    <motion.span key="moon" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.2 }} className="block">
+                      <Moon className="h-5 w-5" />
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </button>
               <span className="text-sm text-neutral-400">
                 Welcome back, <span className="text-white font-medium">{user?.fullName || 'Admin'}</span>
               </span>
@@ -186,5 +207,13 @@ export default function AdminLayout() {
         </motion.main>
       </div>
     </div>
+  )
+}
+
+export default function AdminLayout() {
+  return (
+    <AdminThemeProvider>
+      <AdminLayoutContent />
+    </AdminThemeProvider>
   )
 }

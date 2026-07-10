@@ -1,5 +1,4 @@
 import {
-  Film,
   Facebook,
   Instagram,
   Mail,
@@ -15,6 +14,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import logo from "../assets/logo.png";
 
 const quickLinks = [
   { href: '/', label: 'Home', icon: Home },
@@ -51,14 +51,19 @@ export default function Footer() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 lg:gap-8">
             {/* Brand — spans 5 cols on desktop */}
             <div className="lg:col-span-5">
-              <Link to="/" className="inline-flex items-center gap-3 mb-6 group" aria-label="CinemaID Home">
-                <span className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-lg shadow-primary-500/25 transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl group-hover:shadow-primary-500/40">
-                  <Film className="h-5 w-5 text-white" />
-                  <span className="absolute inset-0 rounded-xl bg-primary-500/30 blur-xl opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+              <Link to="/" className="inline-flex items-center gap-3 mb-6 group" aria-label="CINELUX Home">
+              <span className="relative flex h-10 w-10 items-center justify-center transition-all duration-300 group-hover:scale-110 overflow-hidden">
+                <img
+                src={logo}
+                alt="CineLux Logo"
+                className="h-full w-full object-contain"
+                />
+                
+                <span className="absolute inset-0 rounded-xl bg-primary-500/30 blur-xl opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
                 </span>
-                <span className="text-xl font-display font-bold text-white tracking-tight">
-                  Cinema<span className="text-primary-400">ID</span>
-                </span>
+              <span className="text-xl font-display font-bold text-white tracking-tight">
+                CINE<span className="text-primary-400">LUX</span>
+              </span>
               </Link>
               <p className="text-neutral-400 text-sm leading-relaxed max-w-sm mb-8">
                 Premium moviegoing with curated showtimes, comfortable halls, quick checkout, and e-tickets ready before the lights go down.

@@ -1,10 +1,11 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Film, LogOut, MapPin, Settings, Ticket, User, ChevronDown } from 'lucide-react';
+import { LogOut, MapPin, Settings, Ticket, User, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
+import logo from "../assets/logo.png";
 
 export default function Header() {
   const { user, isAdmin, signOut } = useAuth();
@@ -43,12 +44,14 @@ export default function Header() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 group">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-lg shadow-primary-950/40 transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl group-hover:shadow-primary-500/30">
-              <Film className="h-5 w-5 text-white" />
-            </span>
-            <span className="text-lg font-display font-bold text-white tracking-tight">
-              Cinema<span className="text-primary-400">ID</span>
-            </span>
+          <img
+          src={logo}
+          alt="CineLux Logo"
+          className="h-10 w-10 transition-transform duration-300 group-hover:scale-110"
+          />
+          <span className="text-lg font-display font-bold text-white tracking-tight">
+            CINE<span className="text-primary-400">LUX</span>
+          </span>
           </Link>
 
           {/* Desktop Navigation */}
