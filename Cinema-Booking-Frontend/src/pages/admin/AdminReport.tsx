@@ -26,6 +26,7 @@ export default function AdminReportsPage() {
   const [bookings, setBookings] = useState<IBooking[]>([]);
   const [weeklyRevenue, setWeeklyRevenue] = useState<{ date: string; revenue: number }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [activeStatusIndex, setActiveStatusIndex] = useState<number | null>(null);
 
   useEffect(() => {
@@ -35,6 +36,7 @@ export default function AdminReportsPage() {
   const fetchReportData = async () => {
     setLoading(true);
     try {
+      setError('');
       const [stats, moviesData, hallsData, bookingsData] = await Promise.all([
         adminService.getDashboardStats(),
         movieService.getMovies(),
@@ -47,7 +49,7 @@ export default function AdminReportsPage() {
       setWeeklyRevenue(stats.weeklyRevenue);
     } catch (error) {
       console.error(error);
-      toast.error('Error loading report data');
+      setError('Unable to load report data. Please try again.');
     } finally {
       setLoading(false);
     }

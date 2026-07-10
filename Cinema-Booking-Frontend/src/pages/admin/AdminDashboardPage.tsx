@@ -44,6 +44,7 @@ export default function AdminDashboardPage() {
     popularMovies: []
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     fetchDashboardStats();
@@ -51,9 +52,11 @@ export default function AdminDashboardPage() {
 
   const fetchDashboardStats = async () => {
     try {
+      setError('');
       setStats(await adminService.getDashboardStats());
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
+      setError('Unable to load dashboard data. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -89,6 +92,12 @@ export default function AdminDashboardPage() {
           ))}
         </div>
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <ErrorMessage message={error} onRetry={fetchDashboardStats} />
     );
   }
 

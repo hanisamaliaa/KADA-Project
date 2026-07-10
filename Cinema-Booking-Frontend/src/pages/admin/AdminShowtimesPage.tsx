@@ -4,6 +4,7 @@ import { useForm, SubmitHandler } from 'react-hook-form';
 import { Plus, Edit, Trash2, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import ErrorMessage from '@/components/ErrorMessage';
 import toast from 'react-hot-toast';
 import { movieService } from '@/services/movieService';
 import { showtimeService } from '@/services/showtimeService';
@@ -224,6 +225,7 @@ const DeleteConfirmationModal: React.FC<DeleteModalProps> = ({ showtime, onClose
 export default function AdminShowtimesPage() {
   const [showtimes, setShowtimes] = useState<IShowtime[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingShowtime, setEditingShowtime] = useState<IShowtime | null>(null);
   const [showtimeToDelete, setShowtimeToDelete] = useState<IShowtime | null>(null);
@@ -239,6 +241,7 @@ export default function AdminShowtimesPage() {
   const fetchShowtimes = async () => {
     setLoading(true);
     try {
+      setError('');
       const data = await showtimeService.getShowtimes();
       setShowtimes(data || []);
       const counts = await Promise.all(
@@ -246,7 +249,7 @@ export default function AdminShowtimesPage() {
       );
       setSeatCounts(Object.fromEntries(counts));
     } catch {
-      toast.error('Failed to load showtimes');
+      setError('Unable to load showtimes. Please try again.');
     } finally {
       setLoading(false);
     }

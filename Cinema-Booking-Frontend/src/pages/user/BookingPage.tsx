@@ -4,6 +4,7 @@ import { ArrowLeft, Armchair, CalendarDays, Clock, MapPin, X } from 'lucide-reac
 import { motion } from 'framer-motion';
 import { IMovie, IShowtime } from '@/types';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import ErrorMessage from '@/components/ErrorMessage';
 import toast from 'react-hot-toast';
 import BookingProgress from '@/components/BookingProgress';
 import { movieService } from '@/services/movieService';
@@ -28,6 +29,7 @@ export default function BookingPage() {
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [occupiedSeats, setOccupiedSeats] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (showtimeId) {
@@ -45,6 +47,7 @@ export default function BookingPage() {
 
   const fetchMovieAndShowtimes = async (id: string) => {
     try {
+      setError('');
       const [movieData, showtimesData] = await Promise.all([
         movieService.getMovieById(id),
         showtimeService.getMovieShowtimes(id)
@@ -54,7 +57,7 @@ export default function BookingPage() {
       setShowtimes(showtimesData || []);
     } catch (error) {
       console.error('Error fetching data:', error);
-      toast.error('Failed to load movie details');
+      setError('Unable to load movie details. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -62,6 +65,7 @@ export default function BookingPage() {
 
   const fetchFromShowtime = async (id: string) => {
     try {
+      setError('');
       const showtime = await showtimeService.getShowtimeById(id);
       const showtimesData = await showtimeService.getMovieShowtimes(showtime.movie._id);
       setMovie(showtime.movie);
@@ -69,7 +73,7 @@ export default function BookingPage() {
       setSelectedShowtime(showtime);
     } catch (error) {
       console.error('Error fetching showtime:', error);
-      toast.error('Failed to load showtime details');
+      setError('Unable to load showtime details. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -137,6 +141,21 @@ export default function BookingPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-dark-950">
         <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-dark-900">
+        <ErrorMessage
+          message={error}
+          onRetry={() => {
+            setLoading(true);
+            if (showtimeId) fetchFromShowtime(showtimeId);
+            else if (movieId) fetchMovieAndShowtimes(movieId);
+          }}
+        />
       </div>
     );
   }

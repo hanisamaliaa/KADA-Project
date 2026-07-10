@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { IBooking } from '@/types'
 import { useAuth } from '@/contexts/AuthContext'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import ErrorMessage from '@/components/ErrorMessage'
 import { bookingService } from '@/services/bookingService'
 
 export default function BookingDetailsPage() {
@@ -12,6 +13,7 @@ export default function BookingDetailsPage() {
   const { user } = useAuth()
   const [booking, setBooking] = useState<IBooking | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     if (id && user) {
@@ -21,6 +23,7 @@ export default function BookingDetailsPage() {
 
   const fetchBookingDetails = async (bookingId: string) => {
     try {
+      setError('')
       const data = await bookingService.getBookingById(bookingId);
 
       if (data.user.id !== user?.id && data.user._id !== user?.id && user?.role !== 'admin') {
@@ -30,6 +33,7 @@ export default function BookingDetailsPage() {
       setBooking(data)
     } catch (error) {
       console.error('Error fetching booking details:', error)
+      setError('Unable to load booking details. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -51,6 +55,14 @@ export default function BookingDetailsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-dark-950">
         <LoadingSpinner size="lg" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <ErrorMessage message={error} onRetry={() => id && fetchBookingDetails(id)} />
       </div>
     )
   }

@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { bookingService } from '@/services/bookingService';
 import type { IBooking } from '@/types';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import ErrorMessage from '@/components/ErrorMessage';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -20,12 +21,17 @@ export default function ProfilePage() {
   const { user } = useAuth();
   const [bookings, setBookings] = useState<IBooking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const loadBookings = async () => {
       if (!user) return;
       try {
+        setError('');
         setBookings(await bookingService.getMyBookings(user.id));
+      } catch (err) {
+        console.error('Error loading bookings:', err);
+        setError('Unable to load booking data. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -37,6 +43,24 @@ export default function ProfilePage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-dark-950">
         <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <ErrorMessage
+          message={error}
+          onRetry={() => {
+            setLoading(true);
+            setError('');
+            bookingService.getMyBookings(user.id)
+              .then(setBookings)
+              .catch(() => setError('Unable to load booking data. Please try again.'))
+              .finally(() => setLoading(false));
+          }}
+        />
       </div>
     );
   }

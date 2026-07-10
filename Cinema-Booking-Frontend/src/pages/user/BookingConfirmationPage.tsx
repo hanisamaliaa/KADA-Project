@@ -4,6 +4,7 @@ import { ArrowLeft, CalendarDays, CheckCircle, MapPin, QrCode, Ticket } from 'lu
 import { motion } from 'framer-motion';
 import { IBooking } from '@/types';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import ErrorMessage from '@/components/ErrorMessage';
 import BookingProgress from '@/components/BookingProgress';
 import { bookingService } from '@/services/bookingService';
 
@@ -11,6 +12,7 @@ export default function BookingConfirmationPage() {
   const navigate = useNavigate();
   const [booking, setBooking] = useState<IBooking | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const bookingId = bookingService.getConfirmedBookingId();
@@ -20,7 +22,7 @@ export default function BookingConfirmationPage() {
           setBooking(data);
           bookingService.clearConfirmedBookingId();
         })
-        .catch(() => navigate('/my-bookings'))
+        .catch(() => setError('Unable to load booking confirmation. Please try again.'))
         .finally(() => setLoading(false));
     } else {
       setLoading(false);
@@ -32,6 +34,17 @@ export default function BookingConfirmationPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-dark-950">
         <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-dark-900">
+        <ErrorMessage
+          message={error}
+          onRetry={() => navigate('/my-bookings')}
+        />
       </div>
     );
   }

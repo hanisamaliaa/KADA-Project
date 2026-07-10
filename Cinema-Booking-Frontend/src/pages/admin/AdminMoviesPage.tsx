@@ -3,6 +3,7 @@ import { useForm, SubmitHandler } from 'react-hook-form';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import ErrorMessage from '@/components/ErrorMessage';
 import toast from 'react-hot-toast';
 import { useSearchParams } from 'react-router-dom';
 import { movieService } from '@/services/movieService';
@@ -198,6 +199,7 @@ const DeleteConfirmationModal: React.FC<DeleteModalProps> = ({ movie, onClose, o
 export default function AdminMoviesPage() {
   const [movies, setMovies] = useState<IMovie[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMovie, setEditingMovie] = useState<IMovie | null>(null);
   const [movieToDelete, setMovieToDelete] = useState<IMovie | null>(null);
@@ -213,11 +215,12 @@ export default function AdminMoviesPage() {
   const fetchMovies = async () => {
     setLoading(true);
     try {
+      setError('');
       const data = await movieService.getMovies();
       setMovies(data || []);
     } catch (error) {
       console.error('Error fetching movies:', error);
-      toast.error('Failed to load movies');
+      setError('Unable to load movies. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -269,6 +272,12 @@ export default function AdminMoviesPage() {
       <div className="flex items-center justify-center h-64">
         <LoadingSpinner size="lg" />
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <ErrorMessage message={error} onRetry={fetchMovies} />
     );
   }
 
