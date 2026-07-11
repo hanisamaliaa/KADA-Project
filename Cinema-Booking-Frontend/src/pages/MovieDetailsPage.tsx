@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Calendar, Clock, MapPin, Play, Star, Ticket } from 'lucide-react';
+import { Calendar, Clock, Globe, MapPin, Play, Star, Ticket, Users } from 'lucide-react';
 import { IMovie, IShowtime } from '@/types';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorMessage from '@/components/ErrorMessage';
 import { movieService } from '@/services/movieService';
 import { showtimeService } from '@/services/showtimeService';
+import { motion } from 'framer-motion';
 
 export default function MovieDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -66,7 +67,10 @@ export default function MovieDetailsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Movie Not Found</h1>
+          <div className="w-16 h-16 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mx-auto mb-4">
+            <Ticket className="h-8 w-8 text-neutral-600" />
+          </div>
+          <h1 className="text-2xl font-display font-bold mb-3">Movie Not Found</h1>
           <Link to="/movies" className="btn btn-primary">
             Back to Movies
           </Link>
@@ -79,129 +83,191 @@ export default function MovieDetailsPage() {
 
   return (
     <div className="min-h-screen">
+      {/* Hero backdrop */}
       <section className="relative overflow-hidden">
         <div
-          className="absolute inset-0 bg-cover bg-center"
+          className="absolute inset-0 bg-cover bg-center scale-105"
           style={{ backgroundImage: `url(${backdrop})` }}
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-dark-950 via-dark-950/85 to-dark-950/40" />
-          <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-dark-950 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-dark-950 via-dark-950/[0.92] to-dark-950/60" />
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-dark-950 via-dark-950/70 to-transparent" />
+          <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-dark-950/50 to-transparent" />
         </div>
-        <div className="relative mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[300px_1fr] lg:px-8 lg:py-16">
+
+        <div className="relative mx-auto grid max-w-7xl grid-cols-1 gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[300px_1fr] lg:px-8 lg:py-20">
           {/* Movie Poster */}
-          <div>
-            <div className="max-w-[260px]">
-              <img
-                src={movie.poster_url || ''}
-                alt={movie.title}
-                className="w-full rounded-lg shadow-2xl shadow-black/60"
-              />
+          <motion.div
+            initial={{ opacity: 0, x: -30, scale: 0.95 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            transition={{ duration: 0.6, ease: [0.22, 0.61, 0.36, 1] }}
+          >
+            <div className="max-w-[280px] lg:max-w-full mx-auto lg:mx-0">
+              <div className="relative group">
+                <div className="absolute -inset-4 bg-gradient-to-b from-primary-500/15 via-primary-500/5 to-transparent rounded-3xl blur-2xl opacity-60 group-hover:opacity-80 transition-opacity duration-700" />
+                <img
+                  src={movie.poster_url || ''}
+                  alt={movie.title}
+                  className="relative w-full rounded-3xl shadow-poster ring-1 ring-white/[0.1] transition-transform duration-500 group-hover:scale-[1.02]"
+                />
+              </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Movie Details */}
-          <div className="flex items-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.15 }}
+            className="flex items-center"
+          >
             <div className="max-w-3xl space-y-6">
               <div>
-                <div className="mb-4 flex flex-wrap items-center gap-3">
-                  <span className="cinema-badge bg-primary-600/90">{movie.status === 'coming_soon' ? 'Coming Soon' : 'Now Playing'}</span>
+                <div className="mb-5 flex flex-wrap items-center gap-2.5">
+                  <span className="cinema-badge bg-primary-500/20 text-primary-300 border-primary-500/30">
+                    {movie.status === 'coming_soon' ? 'Coming Soon' : 'Now Playing'}
+                  </span>
                   {movie.classification && <span className="cinema-badge">{movie.classification}</span>}
-                  {movie.rating ? (
-                    <div className="flex items-center space-x-1 text-accent-400">
-                      <Star className="h-5 w-5 fill-current" />
-                      <span className="font-semibold">{movie.rating.toFixed(1)}</span>
+                  {movie.rating && (
+                    <div className="cinema-badge bg-amber-500/15 text-amber-300 border-amber-500/25">
+                      <Star className="h-3 w-3 fill-current" />
+                      {movie.rating.toFixed(1)}
                     </div>
-                  ) : null}
+                  )}
                 </div>
-                <h1 className="text-4xl font-display font-black mb-4 md:text-6xl">
+                <h1 className="text-4xl font-display font-extrabold mb-5 md:text-5xl lg:text-6xl tracking-tight text-white leading-[1.08]">
                   {movie.title}
                 </h1>
-                
-                <div className="flex flex-wrap items-center gap-6 text-slate-400 mb-6">
-                  <div className="flex items-center space-x-2">
-                    <Calendar className="h-5 w-5" />
-                    <span>{new Date(movie.release_date).getFullYear()}</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Clock className="h-5 w-5" />
-                    <span>{movie.duration} minutes</span>
-                  </div>
-                  <div className="px-3 py-1 bg-primary-500/20 text-primary-400 rounded-full text-sm font-medium">
+
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <span className="info-chip">
+                    <Calendar className="h-3.5 w-3.5 text-primary-400" />
+                    {new Date(movie.release_date).getFullYear()}
+                  </span>
+                  <span className="info-chip">
+                    <Clock className="h-3.5 w-3.5 text-primary-400" />
+                    {movie.duration} min
+                  </span>
+                  <span className="info-chip bg-primary-500/10 text-primary-300 border-primary-500/20">
                     {movie.genre}
-                  </div>
+                  </span>
+                  {movie.director && (
+                    <span className="info-chip">
+                      <Users className="h-3.5 w-3.5 text-accent-400" />
+                      {movie.director}
+                    </span>
+                  )}
                 </div>
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Link
                   to={selectedShowtime ? `/booking/${selectedShowtime._id}` : `/book/${movie._id}`}
-                  className="btn btn-primary text-lg px-8 py-3"
+                  className="btn btn-primary btn-lg group"
                 >
-                  <Ticket className="h-5 w-5" />
+                  <Ticket className="h-5 w-5 transition-transform duration-300 group-hover:rotate-12" />
                   Buy Tickets
                 </Link>
                 {movie.trailer_url && (
-                  <a href="#trailer" className="btn btn-secondary text-lg px-8 py-3">
-                    <Play className="h-5 w-5" />
+                  <a href="#trailer" className="btn btn-secondary btn-lg group">
+                    <Play className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
                     Watch Trailer
                   </a>
                 )}
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
-      <div className="max-w-7xl mx-auto px-4 py-10 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-              <div>
-                <p className="section-eyebrow mb-3">Story</p>
-                <h2 className="text-2xl font-semibold mb-4">Synopsis</h2>
-                <p className="text-slate-300 leading-relaxed text-lg">
+      <div className="max-w-7xl mx-auto px-4 py-14 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+          <div className="lg:col-span-2 space-y-12">
+            {/* Synopsis */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+            >
+              <p className="section-eyebrow mb-3">Story</p>
+              <h2 className="text-xl font-display font-bold text-white mb-5">Synopsis</h2>
+              <div className="card p-6">
+                <p className="text-neutral-300/90 leading-[1.8] text-[15px]">
                   {movie.description}
                 </p>
               </div>
+            </motion.div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <h2 className="text-xl font-semibold mb-2">Director</h2>
-                  <p className="text-slate-300">{movie.director || 'To be announced'}</p>
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold mb-2">Cast</h2>
-                  <p className="text-slate-300">{movie.cast?.join(', ') || 'To be announced'}</p>
-                </div>
-              </div>
-
-              {/* Trailer */}
-              {movie.trailer_url && (
-                <div id="trailer">
-                  <p className="section-eyebrow mb-3">Preview</p>
-                  <h2 className="text-2xl font-semibold mb-4">Trailer</h2>
-                  <div className="aspect-video rounded-xl overflow-hidden bg-dark-800">
-                    <iframe
-                      src={movie.trailer_url}
-                      title={`${movie.title} Trailer`}
-                      className="w-full h-full"
-                      allowFullScreen
-                    />
+            {/* Details */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="grid grid-cols-1 sm:grid-cols-2 gap-5"
+            >
+              <div className="card p-5 group hover:border-white/[0.1] transition-all duration-300">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-9 h-9 rounded-xl bg-primary-500/10 border border-primary-500/20 flex items-center justify-center">
+                    <Users className="h-4 w-4 text-primary-400" />
                   </div>
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Director</h3>
                 </div>
-              )}
+                <p className="text-white font-medium">{movie.director || 'To be announced'}</p>
+              </div>
+              <div className="card p-5 group hover:border-white/[0.1] transition-all duration-300">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-9 h-9 rounded-xl bg-accent-500/10 border border-accent-500/20 flex items-center justify-center">
+                    <Globe className="h-4 w-4 text-accent-400" />
+                  </div>
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Cast</h3>
+                </div>
+                <p className="text-white font-medium leading-relaxed">{movie.cast?.join(', ') || 'To be announced'}</p>
+              </div>
+            </motion.div>
 
+            {/* Trailer */}
+            {movie.trailer_url && (
+              <motion.div
+                id="trailer"
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+              >
+                <p className="section-eyebrow mb-3">Preview</p>
+                <h2 className="text-xl font-display font-bold text-white mb-5">Trailer</h2>
+                <div className="aspect-video rounded-2xl overflow-hidden bg-white/[0.03] ring-1 ring-white/[0.06] shadow-cinema">
+                  <iframe
+                    src={movie.trailer_url}
+                    title={`${movie.title} Trailer`}
+                    className="w-full h-full"
+                    allowFullScreen
+                  />
+                </div>
+              </motion.div>
+            )}
           </div>
 
+          {/* Showtimes Sidebar */}
           <aside className="lg:col-span-1">
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.15 }}
+            >
               {showtimes.length > 0 ? (
-                <div className="cinema-panel sticky top-24 p-6">
+                <div className="glass-panel sticky top-24 p-6">
                   <p className="section-eyebrow mb-3">Book now</p>
-                  <h2 className="text-2xl font-semibold mb-4">Select Showtime</h2>
-                  <div className="mb-5 flex items-center gap-2 rounded-md bg-dark-950 px-3 py-2 text-sm text-slate-300">
-                    <MapPin className="h-4 w-4 text-accent-400" />
-                    CinemaID Grand Indonesia
+                  <h2 className="text-xl font-display font-bold text-white mb-5">Select Showtime</h2>
+                  <div className="mb-6 flex items-center gap-2.5 rounded-xl bg-white/[0.03] px-4 py-3 text-xs text-neutral-300 border border-white/[0.06]">
+                    <MapPin className="h-3.5 w-3.5 text-primary-400" />
+                    CineLux Grand Indonesia
                   </div>
-                  <div className="mb-5 flex gap-2 overflow-x-auto pb-1">
+
+                  {/* Date selector */}
+                  <div className="mb-6 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
                     {availableDates.map((date) => (
                       <button
                         key={date}
@@ -209,50 +275,62 @@ export default function MovieDetailsPage() {
                           setSelectedDate(date);
                           setSelectedShowtime(null);
                         }}
-                        className={`min-w-24 rounded-md px-4 py-3 text-left transition ${
-                          selectedDate === date ? 'bg-primary-600 text-white' : 'bg-dark-950 text-slate-300 hover:bg-dark-800'
+                        className={`min-w-[82px] rounded-xl px-3.5 py-3 text-left transition-all duration-300 ${
+                          selectedDate === date
+                            ? 'bg-gradient-to-b from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-950/40'
+                            : 'bg-white/[0.04] text-neutral-300 hover:bg-white/[0.07] border border-white/[0.06] hover:border-white/[0.1]'
                         }`}
                       >
-                        <span className="block text-xs uppercase opacity-70">
+                        <span className="block text-[10px] uppercase opacity-70 font-medium">
                           {new Date(date).toLocaleDateString('en-US', { weekday: 'short' })}
                         </span>
-                        <span className="block font-bold">
+                        <span className="block text-sm font-bold">
                           {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </span>
                       </button>
                     ))}
                   </div>
-                  <div className="space-y-3">
+
+                  {/* Time slots */}
+                  <div className="space-y-2.5">
                     {visibleShowtimes.map((showtime) => (
                       <button
                         key={showtime._id}
                         onClick={() => setSelectedShowtime(showtime)}
-                        className={`w-full rounded-lg border p-4 text-left transition hover:border-primary-500 ${
-                          selectedShowtime?._id === showtime._id ? 'border-primary-500 bg-primary-500/10' : ''
+                        className={`w-full rounded-xl border p-4 text-left transition-all duration-300 ${
+                          selectedShowtime?._id === showtime._id
+                            ? 'border-primary-500/50 bg-primary-500/10 shadow-lg shadow-primary-500/10'
+                            : 'border-white/[0.06] bg-white/[0.03] hover:border-white/[0.1] hover:bg-white/[0.06]'
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <p className="text-lg font-bold">{showtime.start_time}</p>
-                          <p className="text-accent-400 font-semibold">IDR {showtime.ticket_price.toLocaleString()}</p>
+                          <p className="text-lg font-bold text-white">{showtime.start_time}</p>
+                          <p className="text-accent-400 text-sm font-semibold">
+                            IDR {showtime.ticket_price.toLocaleString()}
+                          </p>
                         </div>
-                        <p className="text-sm text-slate-400">{showtime.hall.hall_name} • {showtime.end_time} finish</p>
+                        <p className="text-xs text-neutral-500 mt-1.5">
+                          {showtime.hall.hall_name} &middot; {showtime.end_time} finish
+                        </p>
                       </button>
                     ))}
                   </div>
+
                   <Link
                     to={selectedShowtime ? `/booking/${selectedShowtime._id}` : `/book/${movie._id}`}
-                    className="btn btn-primary mt-5 w-full py-3 text-base"
+                    className="btn btn-primary w-full mt-6 py-3.5 text-sm"
                   >
-                    <Ticket className="h-5 w-5" />
+                    <Ticket className="h-4 w-4" />
                     Continue to Seats
                   </Link>
                 </div>
               ) : (
-                <div className="cinema-panel p-6">
-                  <h2 className="text-xl font-semibold">No showtimes yet</h2>
-                  <p className="mt-2 text-slate-400">Check back soon for available sessions.</p>
+                <div className="glass-panel p-6">
+                  <h2 className="text-lg font-display font-bold text-white">No showtimes yet</h2>
+                  <p className="mt-2 text-sm text-neutral-400">Check back soon for available sessions.</p>
                 </div>
               )}
+            </motion.div>
           </aside>
         </div>
       </div>

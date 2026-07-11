@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Eye, CheckCircle, XCircle, Download } from 'lucide-react';
+import { motion } from 'framer-motion';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorMessage from '@/components/ErrorMessage';
 import toast from 'react-hot-toast';
@@ -109,26 +110,50 @@ export default function AdminBookingsPage() {
     );
   }
 
-  if (error) {
-    return (
-      <ErrorMessage message={error} onRetry={fetchBookings} />
-    );
-  }
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.04 } },
+  };
+
+  const rowVariants = {
+    hidden: { opacity: 0, y: 8 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.25 } },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 12 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        className="flex items-center justify-between"
+      >
         <div>
-          <h1 className="text-3xl font-display font-bold">Bookings</h1>
-          <p className="text-slate-400">Manage customer bookings</p>
+          <h1 className="text-3xl font-display font-bold text-white">Bookings</h1>
+          <p className="text-neutral-400">Manage customer bookings</p>
         </div>
-        <button onClick={handleExport} className="btn btn-secondary flex items-center space-x-2">
+        <motion.button
+          onClick={handleExport}
+          className="btn btn-secondary flex items-center space-x-2"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
           <Download className="h-4 w-4" />
           <span>Export</span>
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+        className="grid grid-cols-1 md:grid-cols-4 gap-4"
+      >
         <input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} className="input" placeholder="Search bookings..." />
         <select value={movieFilter} onChange={(event) => setMovieFilter(event.target.value)} className="input">
           <option value="">All Movies</option>
@@ -141,73 +166,86 @@ export default function AdminBookingsPage() {
           <option value="cancelled">Cancelled</option>
         </select>
         <input type="date" value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} className="input" />
-      </div>
+      </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="card p-6">
-          <p className="text-sm text-slate-400">Total Bookings</p>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+        <motion.div variants={itemVariants} initial="hidden" animate="visible" className="card p-6">
+          <p className="text-sm text-neutral-500">Total Bookings</p>
           <p className="text-2xl font-bold text-white">{bookings.length}</p>
-        </div>
-        <div className="card p-6">
-          <p className="text-sm text-slate-400">Confirmed</p>
+        </motion.div>
+        <motion.div variants={itemVariants} initial="hidden" animate="visible" transition={{ delay: 0.05 }} className="card p-6">
+          <p className="text-sm text-neutral-500">Confirmed</p>
           <p className="text-2xl font-bold text-green-400">{bookings.filter(b => b.status === 'confirmed').length}</p>
-        </div>
-        <div className="card p-6">
-          <p className="text-sm text-slate-400">Pending</p>
+        </motion.div>
+        <motion.div variants={itemVariants} initial="hidden" animate="visible" transition={{ delay: 0.1 }} className="card p-6">
+          <p className="text-sm text-neutral-500">Pending</p>
           <p className="text-2xl font-bold text-yellow-400">{bookings.filter(b => b.status === 'pending').length}</p>
-        </div>
-        <div className="card p-6">
-          <p className="text-sm text-slate-400">Total Revenue</p>
+        </motion.div>
+        <motion.div variants={itemVariants} initial="hidden" animate="visible" transition={{ delay: 0.15 }} className="card p-6">
+          <p className="text-sm text-neutral-500">Total Revenue</p>
           <p className="text-2xl font-bold text-primary-400">IDR {totalRevenue.toLocaleString()}</p>
-        </div>
+        </motion.div>
       </div>
 
       {displayBookings.length === 0 ? (
-        <div className="text-center py-12 card">
-          <p className="text-slate-400 text-lg">No bookings found for the selected filters.</p>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center py-12 card"
+        >
+          <p className="text-neutral-400 text-lg">No bookings found for the selected filters.</p>
+        </motion.div>
       ) : (
-        <div className="card overflow-hidden">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="card overflow-hidden"
+        >
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-dark-800">
+              <thead className="bg-dark-800/60">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Booking ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Customer</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Movie</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Date & Time</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Seats</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Amount</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
+                  <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Booking ID</th>
+                  <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Customer</th>
+                  <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Movie</th>
+                  <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Date & Time</th>
+                  <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Seats</th>
+                  <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Amount</th>
+                  <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-dark-700">
+              <tbody className="divide-y divide-dark-700/50">
                 {displayBookings.map((booking) => (
-                  <tr key={booking._id} className="hover:bg-dark-800/50">
+                  <motion.tr
+                    key={booking._id}
+                    variants={rowVariants}
+                    className="hover:bg-dark-800/40 transition-colors duration-150"
+                  >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">#{booking._id.slice(-6)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-300">
                       <div>{booking.user.fullName}</div>
-                      <div className="text-slate-400">{booking.user.email}</div>
+                      <div className="text-neutral-500">{booking.user.email}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <img
-                          src={booking.showtime?.movie?.poster_url || 'https://placehold.co/60x90/0f172a/94a3b8?text=N/A'}
+                          src={booking.showtime?.movie?.poster_url || 'https://placehold.co/60x90/171717/525252?text=N/A'}
                           alt={booking.showtime?.movie?.title}
-                          className="w-10 h-15 object-cover rounded"
+                          className="w-10 h-15 object-cover rounded-xl"
                         />
                         <div className="ml-3">
                           <div className="text-sm font-medium text-white">{booking.showtime?.movie?.title}</div>
-                          <div className="text-sm text-slate-400">{booking.showtime?.hall?.hall_name}</div>
+                          <div className="text-sm text-neutral-500">{booking.showtime?.hall?.hall_name}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-300">
                       <div>{new Date(booking.showtime?.show_date || '').toLocaleDateString()}</div>
-                      <div className="text-slate-400">{booking.showtime?.start_time}</div>
+                      <div className="text-neutral-500">{booking.showtime?.start_time}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">{booking.selected_seats?.join(', ')}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-300">{booking.selected_seats?.join(', ')}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary-400">IDR {booking.total_amount.toLocaleString()}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={getStatusBadge(booking.status)}>
@@ -216,27 +254,37 @@ export default function AdminBookingsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center space-x-2">
-                        <Link to={`/admin/bookings/${booking._id}`} className="text-blue-400 hover:text-blue-300">
+                        <Link to={`/admin/bookings/${booking._id}`} className="text-blue-400 hover:text-blue-300 p-1.5 rounded-xl hover:bg-dark-700/60 transition-all duration-200">
                           <Eye className="h-4 w-4" />
                         </Link>
                         {booking.status === 'pending' && (
                           <>
-                            <button onClick={() => handleUpdateBookingStatus(booking._id, 'confirmed')} className="text-green-400 hover:text-green-300">
+                            <motion.button
+                              onClick={() => handleUpdateBookingStatus(booking._id, 'confirmed')}
+                              className="text-green-400 hover:text-green-300 p-1.5 rounded-xl hover:bg-dark-700/60 transition-all duration-200"
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                            >
                               <CheckCircle className="h-4 w-4" />
-                            </button>
-                            <button onClick={() => handleUpdateBookingStatus(booking._id, 'cancelled')} className="text-red-400 hover:text-red-300">
+                            </motion.button>
+                            <motion.button
+                              onClick={() => handleUpdateBookingStatus(booking._id, 'cancelled')}
+                              className="text-red-400 hover:text-red-300 p-1.5 rounded-xl hover:bg-dark-700/60 transition-all duration-200"
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                            >
                               <XCircle className="h-4 w-4" />
-                            </button>
+                            </motion.button>
                           </>
                         )}
                       </div>
                     </td>
-                  </tr>
+                  </motion.tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
+        </motion.div>
       )}
     </div>
   );

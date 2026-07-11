@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { Plus, Edit, Trash2, Calendar } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorMessage from '@/components/ErrorMessage';
 import toast from 'react-hot-toast';
@@ -23,6 +24,18 @@ interface ShowtimeFormProps {
   showtimeToEdit: IShowtime | null;
   onClose: () => void;
   onSave: () => void;
+}
+
+const modalOverlayVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { duration: 0.2 } },
+  exit: { opacity: 0, transition: { duration: 0.15 } },
+}
+
+const modalContentVariants = {
+  hidden: { opacity: 0, scale: 0.95, y: 12 },
+  visible: { opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 400, damping: 30 } },
+  exit: { opacity: 0, scale: 0.95, y: 12, transition: { duration: 0.15 } },
 }
 
 const ShowtimeForm: React.FC<ShowtimeFormProps> = ({ showtimeToEdit, onClose, onSave }) => {
@@ -92,14 +105,26 @@ const ShowtimeForm: React.FC<ShowtimeFormProps> = ({ showtimeToEdit, onClose, on
   };
 
   return (
-    <div className="fixed inset-0 bg-dark-900/80 z-50 flex items-center justify-center p-4">
-      <div className="card w-full max-w-2xl p-6 relative max-h-[90vh] overflow-y-auto">
-        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-white">&times;</button>
-        <h2 className="text-2xl font-bold mb-6">{showtimeToEdit ? 'Edit Showtime' : 'Add New Showtime'}</h2>
+    <motion.div
+      variants={modalOverlayVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      className="fixed inset-0 bg-dark-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    >
+      <motion.div
+        variants={modalContentVariants}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        className="card w-full max-w-2xl p-6 relative max-h-[90vh] overflow-y-auto"
+      >
+        <button onClick={onClose} className="absolute top-4 right-4 text-neutral-400 hover:text-white p-1 rounded-xl hover:bg-dark-800/60 transition-all duration-200">&times;</button>
+        <h2 className="text-2xl font-display font-bold text-white mb-6">{showtimeToEdit ? 'Edit Showtime' : 'Add New Showtime'}</h2>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Movie</label>
+              <label className="block text-sm font-medium text-neutral-300 mb-1">Movie</label>
               <select {...register('movie_id', { required: 'Movie is required' })} className="input">
                 <option value="">Select a movie</option>
                 {movies.map(movie => <option key={movie._id} value={movie._id}>{movie.title}</option>)}
@@ -107,7 +132,7 @@ const ShowtimeForm: React.FC<ShowtimeFormProps> = ({ showtimeToEdit, onClose, on
               {errors.movie_id && <p className="text-red-400 text-sm mt-1">{errors.movie_id.message}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Hall</label>
+              <label className="block text-sm font-medium text-neutral-300 mb-1">Hall</label>
               <select {...register('hall_id', { required: 'Hall is required' })} className="input">
                 <option value="">Select a hall</option>
                 {halls.map(hall => <option key={hall._id} value={hall._id}>{hall.hall_name}</option>)}
@@ -117,37 +142,43 @@ const ShowtimeForm: React.FC<ShowtimeFormProps> = ({ showtimeToEdit, onClose, on
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Show Date</label>
+              <label className="block text-sm font-medium text-neutral-300 mb-1">Show Date</label>
               <input type="date" {...register('show_date', { required: 'Show date is required' })} className="input" />
               {errors.show_date && <p className="text-red-400 text-sm mt-1">{errors.show_date.message}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Ticket Price (IDR)</label>
+              <label className="block text-sm font-medium text-neutral-300 mb-1">Ticket Price (IDR)</label>
               <input type="number" {...register('ticket_price', { required: 'Price is required' })} className="input" />
               {errors.ticket_price && <p className="text-red-400 text-sm mt-1">{errors.ticket_price.message}</p>}
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Start Time</label>
+              <label className="block text-sm font-medium text-neutral-300 mb-1">Start Time</label>
               <input type="time" {...register('start_time', { required: 'Start time is required' })} className="input" />
               {errors.start_time && <p className="text-red-400 text-sm mt-1">{errors.start_time.message}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">End Time</label>
+              <label className="block text-sm font-medium text-neutral-300 mb-1">End Time</label>
               <input type="time" {...register('end_time', { required: 'End time is required' })} className="input" />
               {errors.end_time && <p className="text-red-400 text-sm mt-1">{errors.end_time.message}</p>}
             </div>
           </div>
           <div className="flex justify-end space-x-4 pt-4">
             <button type="button" onClick={onClose} className="btn btn-secondary">Cancel</button>
-            <button type="submit" disabled={isSubmitting} className="btn btn-primary">
+            <motion.button
+              type="submit"
+              disabled={isSubmitting}
+              className="btn btn-primary"
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+            >
               {isSubmitting ? <LoadingSpinner size="sm" /> : 'Save Showtime'}
-            </button>
+            </motion.button>
           </div>
         </form>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 
@@ -158,18 +189,37 @@ interface DeleteModalProps {
 }
 
 const DeleteConfirmationModal: React.FC<DeleteModalProps> = ({ showtime, onClose, onConfirm }) => (
-  <div className="fixed inset-0 bg-dark-900/80 z-50 flex items-center justify-center p-4">
-    <div className="card p-6 w-full max-w-md">
-      <h2 className="text-xl font-bold mb-4">Confirm Deletion</h2>
-      <p className="text-slate-300 mb-6">
-        Are you sure you want to delete the showtime for "<strong>{showtime.movie?.title}</strong>" on {new Date(showtime.show_date).toLocaleDateString()} at {showtime.start_time}?
+  <motion.div
+    variants={modalOverlayVariants}
+    initial="hidden"
+    animate="visible"
+    exit="exit"
+    className="fixed inset-0 bg-dark-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+  >
+    <motion.div
+      variants={modalContentVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      className="card p-6 w-full max-w-md"
+    >
+      <h2 className="text-xl font-display font-bold text-white mb-4">Confirm Deletion</h2>
+      <p className="text-neutral-300 mb-6">
+        Are you sure you want to delete the showtime for "<strong className="text-white">{showtime.movie?.title}</strong>" on {new Date(showtime.show_date).toLocaleDateString()} at {showtime.start_time}?
       </p>
       <div className="flex justify-end space-x-4">
         <button onClick={onClose} className="btn btn-secondary">Cancel</button>
-        <button onClick={() => onConfirm(showtime._id)} className="btn btn-danger">Delete Showtime</button>
+        <motion.button
+          onClick={() => onConfirm(showtime._id)}
+          className="btn btn-danger"
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.99 }}
+        >
+          Delete Showtime
+        </motion.button>
       </div>
-    </div>
-  </div>
+    </motion.div>
+  </motion.div>
 );
 
 export default function AdminShowtimesPage() {
@@ -254,35 +304,56 @@ export default function AdminShowtimesPage() {
     );
   }
 
-  if (error) {
-    return (
-      <ErrorMessage message={error} onRetry={fetchShowtimes} />
-    );
-  }
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.04 } },
+  };
+
+  const rowVariants = {
+    hidden: { opacity: 0, y: 8 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.25 } },
+  };
 
   return (
     <div className="space-y-6">
-      {isModalOpen && <ShowtimeForm showtimeToEdit={editingShowtime} onClose={handleCloseModal} onSave={handleSave} />}
-      {showtimeToDelete && (
-        <DeleteConfirmationModal
-          showtime={showtimeToDelete}
-          onClose={() => setShowtimeToDelete(null)}
-          onConfirm={handleConfirmDelete}
-        />
-      )}
+      <AnimatePresence>
+        {isModalOpen && <ShowtimeForm showtimeToEdit={editingShowtime} onClose={handleCloseModal} onSave={handleSave} />}
+        {showtimeToDelete && (
+          <DeleteConfirmationModal
+            showtime={showtimeToDelete}
+            onClose={() => setShowtimeToDelete(null)}
+            onConfirm={handleConfirmDelete}
+          />
+        )}
+      </AnimatePresence>
 
-      <div className="flex items-center justify-between">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        className="flex items-center justify-between"
+      >
         <div>
-          <h1 className="text-3xl font-display font-bold">Showtimes</h1>
-          <p className="text-slate-400">Manage movie showtimes</p>
+          <h1 className="text-3xl font-display font-bold text-white">Showtimes</h1>
+          <p className="text-neutral-400">Manage movie showtimes</p>
         </div>
-        <button onClick={() => handleOpenModal(null)} className="btn btn-primary flex items-center space-x-2">
+        <motion.button
+          onClick={() => handleOpenModal(null)}
+          className="btn btn-primary flex items-center space-x-2"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
           <Plus className="h-5 w-5" />
           <span>Add Showtime</span>
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+      >
         <select value={movieFilter} onChange={(event) => setMovieFilter(event.target.value)} className="input">
           <option value="">All Movies</option>
           {[...new Map(showtimes.map((showtime) => [showtime.movie?._id, showtime.movie])).values()].map((movie) => (
@@ -290,65 +361,95 @@ export default function AdminShowtimesPage() {
           ))}
         </select>
         <input type="date" value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} className="input" />
-      </div>
+      </motion.div>
 
       {filteredShowtimes.length === 0 ? (
-        <div className="text-center py-12 card">
-          <Calendar className="h-16 w-16 text-slate-600 mx-auto mb-4" />
-          <p className="text-slate-400 text-lg mb-4">No showtimes found</p>
-          <button onClick={() => handleOpenModal(null)} className="btn btn-primary">Add Your First Showtime</button>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center py-12 card"
+        >
+          <Calendar className="h-16 w-16 text-neutral-700 mx-auto mb-4" />
+          <p className="text-neutral-400 text-lg mb-4">No showtimes found</p>
+          <motion.button
+            onClick={() => handleOpenModal(null)}
+            className="btn btn-primary"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            Add Your First Showtime
+          </motion.button>
+        </motion.div>
       ) : (
-        <div className="card overflow-hidden">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="card overflow-hidden"
+        >
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-dark-800">
+              <thead className="bg-dark-800/60">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Movie</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Hall</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Date & Time</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Price</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Seats</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
+                  <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Movie</th>
+                  <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Hall</th>
+                  <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Date & Time</th>
+                  <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Price</th>
+                  <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Seats</th>
+                  <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-dark-700">
+              <tbody className="divide-y divide-dark-700/50">
                 {filteredShowtimes.map((showtime) => (
-                  <tr key={showtime._id} className="hover:bg-dark-800/50">
+                  <motion.tr
+                    key={showtime._id}
+                    variants={rowVariants}
+                    className="hover:bg-dark-800/40 transition-colors duration-150"
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-white max-w-xs truncate">{showtime.movie?.title}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2 py-1 text-xs font-medium bg-blue-500/20 text-blue-400 rounded-full">
+                      <span className="cinema-badge bg-blue-500/15 text-blue-400">
                         {showtime.hall?.hall_name}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-300">
                       <div>{new Date(showtime.show_date).toLocaleDateString()}</div>
-                      <div className="text-slate-400">{showtime.start_time} - {showtime.end_time}</div>
+                      <div className="text-neutral-500">{showtime.start_time} - {showtime.end_time}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary-400">
                       IDR {showtime.ticket_price.toLocaleString()}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-300">
                       {seatCounts[showtime._id] || 0} booked / {showtime.hall.total_seats - (seatCounts[showtime._id] || 0)} available
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center space-x-2">
-                        <button onClick={() => handleOpenModal(showtime)} className="text-green-400 hover:text-green-300 p-2 rounded-full hover:bg-dark-700">
+                        <motion.button
+                          onClick={() => handleOpenModal(showtime)}
+                          className="text-green-400 hover:text-green-300 p-2 rounded-xl hover:bg-dark-700/60 transition-all duration-200"
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                        >
                           <Edit className="h-4 w-4" />
-                        </button>
-                        <button onClick={() => setShowtimeToDelete(showtime)} className="text-red-400 hover:text-red-300 p-2 rounded-full hover:bg-dark-700">
+                        </motion.button>
+                        <motion.button
+                          onClick={() => setShowtimeToDelete(showtime)}
+                          className="text-red-400 hover:text-red-300 p-2 rounded-xl hover:bg-dark-700/60 transition-all duration-200"
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                        >
                           <Trash2 className="h-4 w-4" />
-                        </button>
+                        </motion.button>
                       </div>
                     </td>
-                  </tr>
+                  </motion.tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
+        </motion.div>
       )}
     </div>
   );
