@@ -7,7 +7,7 @@ const User = require("../models/User");
 const cookieOptions = {
   httpOnly: true,
   secure: false, // Set to true if using HTTPS
-  sameSite: "strict",
+  sameSite: "lax",
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
 
