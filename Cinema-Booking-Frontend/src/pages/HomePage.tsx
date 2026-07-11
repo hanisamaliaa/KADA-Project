@@ -21,9 +21,11 @@ export default function HomePage() {
     try {
       const data = await movieService.getMovies();
       setMovies(data || []);
-      if (data && data.length > 0) {
-        const randomIndex = Math.floor(Math.random() * data.length);
-        setFeaturedMovie(data[randomIndex]);
+      const nowShowingMovies = (data || []).filter((movie) => movie.status === 'now_showing');
+      const featuredPool = nowShowingMovies.length > 0 ? nowShowingMovies : (data || []);
+      if (featuredPool.length > 0) {
+        const randomIndex = Math.floor(Math.random() * featuredPool.length);
+        setFeaturedMovie(featuredPool[randomIndex]);
       }
     } catch (error) {
       console.error('Error fetching movies:', error);

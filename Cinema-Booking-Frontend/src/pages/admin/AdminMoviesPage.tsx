@@ -402,6 +402,9 @@ export default function AdminMoviesPage() {
                     Release Date
                   </th>
                   <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -440,6 +443,17 @@ export default function AdminMoviesPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-300">
                       {new Date(movie.release_date).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {movie.status === 'coming_soon' ? (
+                        <span className="cinema-badge normal-case tracking-normal bg-amber-500/10 border-amber-500/20 text-amber-400">
+                          Coming Soon
+                        </span>
+                      ) : (
+                        <span className="cinema-badge normal-case tracking-normal bg-emerald-500/10 border-emerald-500/20 text-emerald-400">
+                          Now Showing
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center space-x-2">

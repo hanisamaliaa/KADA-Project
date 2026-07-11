@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
-import { Plus, Edit, Trash2, Building } from 'lucide-react';
+import { Plus, Edit, Trash2, Building, Armchair, LayoutGrid } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import LoadingSpinner from '@/components/LoadingSpinner';
+import LoadingSpinner, { Skeleton } from '@/components/LoadingSpinner';
 import ErrorMessage from '@/components/ErrorMessage';
 import toast from 'react-hot-toast';
 import { showtimeService } from '@/services/showtimeService';
@@ -35,6 +35,36 @@ const modalContentVariants = {
   hidden: { opacity: 0, scale: 0.95, y: 12 },
   visible: { opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 400, damping: 30 } },
   exit: { opacity: 0, scale: 0.95, y: 12, transition: { duration: 0.15 } },
+}
+
+const hallColorPalette = [
+  { bg: 'bg-blue-500/15', text: 'text-blue-400', dot: 'bg-blue-400/30 group-hover:bg-blue-400/70' },
+  { bg: 'bg-purple-500/15', text: 'text-purple-400', dot: 'bg-purple-400/30 group-hover:bg-purple-400/70' },
+  { bg: 'bg-emerald-500/15', text: 'text-emerald-400', dot: 'bg-emerald-400/30 group-hover:bg-emerald-400/70' },
+  { bg: 'bg-orange-500/15', text: 'text-orange-400', dot: 'bg-orange-400/30 group-hover:bg-orange-400/70' },
+  { bg: 'bg-pink-500/15', text: 'text-pink-400', dot: 'bg-pink-400/30 group-hover:bg-pink-400/70' },
+  { bg: 'bg-cyan-500/15', text: 'text-cyan-400', dot: 'bg-cyan-400/30 group-hover:bg-cyan-400/70' },
+];
+
+function getHallColor(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return hallColorPalette[Math.abs(hash) % hallColorPalette.length];
+}
+
+function MiniSeatMap({ rows, columns, dotClass }: { rows: number; columns: number; dotClass: string }) {
+  const displayRows = Math.min(rows || 1, 5);
+  const displayCols = Math.min(columns || 1, 12);
+  return (
+    <div
+      className="grid gap-[3px] w-full"
+      style={{ gridTemplateColumns: `repeat(${displayCols}, minmax(0, 1fr))` }}
+    >
+      {Array.from({ length: displayRows * displayCols }).map((_, i) => (
+        <div key={i} className={`aspect-square rounded-[2px] transition-colors duration-300 ${dotClass}`} />
+      ))}
+    </div>
+  );
 }
 
 const HallForm: React.FC<HallFormProps> = ({ hallToEdit, onClose, onSave }) => {
@@ -242,8 +272,41 @@ export default function AdminHallsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <LoadingSpinner size="lg" />
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <Skeleton className="h-8 w-32 mb-2 rounded-lg" />
+            <Skeleton className="h-4 w-48 rounded-lg" />
+          </div>
+          <Skeleton className="h-10 w-28 rounded-xl" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="card p-5 flex items-center gap-3">
+              <Skeleton className="h-10 w-10 rounded-xl" />
+              <div className="space-y-2">
+                <Skeleton className="h-3 w-20 rounded" />
+                <Skeleton className="h-5 w-14 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="card p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-12 w-12 rounded-xl" />
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-4 w-24 rounded" />
+                  <Skeleton className="h-3 w-32 rounded" />
+                </div>
+              </div>
+              <Skeleton className="h-16 w-full rounded-lg" />
+              <Skeleton className="h-4 w-full rounded" />
+              <Skeleton className="h-4 w-3/4 rounded" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -316,24 +379,62 @@ export default function AdminHallsPage() {
           </motion.button>
         </motion.div>
       ) : (
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
-        >
-          {halls.map((hall) => (
+        <>
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.05 }}
+            className="grid grid-cols-1 sm:grid-cols-3 gap-5"
+          >
+            <div className="card p-5 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary-500/15 flex items-center justify-center">
+                <Building className="h-5 w-5 text-primary-400" />
+              </div>
+              <div>
+                <p className="text-xs text-neutral-500">Total Halls</p>
+                <p className="text-xl font-bold text-white">{halls.length}</p>
+              </div>
+            </div>
+            <div className="card p-5 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/15 flex items-center justify-center">
+                <Armchair className="h-5 w-5 text-blue-400" />
+              </div>
+              <div>
+                <p className="text-xs text-neutral-500">Total Capacity</p>
+                <p className="text-xl font-bold text-white">{halls.reduce((sum, h) => sum + h.total_seats, 0).toLocaleString()} seats</p>
+              </div>
+            </div>
+            <div className="card p-5 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/15 flex items-center justify-center">
+                <LayoutGrid className="h-5 w-5 text-purple-400" />
+              </div>
+              <div>
+                <p className="text-xs text-neutral-500">Avg. Seats / Hall</p>
+                <p className="text-xl font-bold text-white">{Math.round(halls.reduce((sum, h) => sum + h.total_seats, 0) / halls.length).toLocaleString()}</p>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+          >
+          {halls.map((hall) => {
+            const palette = getHallColor(hall.hall_name);
+            return (
             <motion.div
               key={hall._id}
               variants={cardVariants}
               whileHover={{ y: -3, transition: { duration: 0.2 } }}
-              className="card p-6 flex flex-col"
+              className="group card p-6 flex flex-col"
             >
               <div className="flex-grow">
                 <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-primary-500/15 rounded-xl flex items-center justify-center">
-                        <Building className="h-6 w-6 text-primary-400" />
+                    <div className={`w-12 h-12 ${palette.bg} rounded-xl flex items-center justify-center`}>
+                        <Building className={`h-6 w-6 ${palette.text}`} />
                     </div>
                     <div>
                         <h3 className="text-lg font-display font-semibold text-white">{hall.hall_name}</h3>
@@ -342,9 +443,13 @@ export default function AdminHallsPage() {
                     </div>
                 </div>
 
+                <div className="mb-5">
+                  <MiniSeatMap rows={hall.layout_rows} columns={hall.layout_columns} dotClass={palette.dot} />
+                </div>
+
                 <div className="space-y-3">
                     <div className="flex justify-between">
-                    <span className="text-neutral-500 text-sm">Total Seats</span>
+                    <span className="text-neutral-500 text-sm flex items-center gap-1.5"><Armchair className="h-3.5 w-3.5" /> Total Seats</span>
                     <span className="text-white font-medium text-sm">{hall.total_seats}</span>
                     </div>
                     <div className="flex justify-between">
@@ -383,8 +488,9 @@ export default function AdminHallsPage() {
                 </motion.button>
               </div>
             </motion.div>
-          ))}
-        </motion.div>
+          )})}
+          </motion.div>
+        </>
       )}
     </div>
   )

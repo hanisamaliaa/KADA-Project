@@ -263,7 +263,7 @@ export default function MovieDetailsPage() {
                   <h2 className="text-xl font-display font-bold text-white mb-5">Select Showtime</h2>
                   <div className="mb-6 flex items-center gap-2.5 rounded-xl bg-white/[0.03] px-4 py-3 text-xs text-neutral-300 border border-white/[0.06]">
                     <MapPin className="h-3.5 w-3.5 text-primary-400" />
-                    CinemaID Grand Indonesia
+                    CineLux Grand Indonesia
                   </div>
 
                   {/* Date selector */}

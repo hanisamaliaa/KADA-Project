@@ -208,7 +208,7 @@ export default function BookingPage() {
               </div>
               <div className="flex items-center gap-2 text-sm text-neutral-400">
                 <MapPin className="h-4 w-4 text-accent-500" />
-                CinemaID Grand Indonesia
+                CineLux Grand Indonesia
               </div>
             </div>
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none">
