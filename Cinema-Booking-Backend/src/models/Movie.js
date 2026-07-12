@@ -16,6 +16,7 @@ const movieSchema = new mongoose.Schema({
   duration: {
     type: Number,
     required: true,
+    min: [1, "Duration must be greater than 0"],
   },
 
   rating: {
