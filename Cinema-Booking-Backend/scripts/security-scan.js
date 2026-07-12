@@ -51,8 +51,20 @@ const leaks = (raw) =>
     rec(r.status === 400 ? "PASS" : "FAIL", "HIGH", `Registration fuzz: ${name}`);
   }
 
+  // Email verification (uses the non-production devCode so the flow completes).
+  if (reg.json.devCode) {
+    const v = await call("/api/auth/verify-email", { email: good.email, code: reg.json.devCode });
+    rec(v.status === 200 ? "PASS" : "FAIL", "HIGH", "Email verification with valid code");
+  }
+
+  // Unverified account must not be able to log in.
+  const unverifiedEmail = `scan_unverified_${uniq}@example.com`;
+  await call("/api/auth/register", { ...good, email: unverifiedEmail });
+  const unverifiedLogin = await call("/api/auth/login", { email: unverifiedEmail, password: good.password });
+  rec(unverifiedLogin.status === 403 ? "PASS" : "FAIL", "HIGH", "Unverified account blocked from login");
+
   const login = await call("/api/auth/login", { email: good.email, password: good.password });
-  rec([200, 403].includes(login.status) ? "PASS" : "FAIL", "CRITICAL", "Valid login");
+  rec(login.status === 200 ? "PASS" : "FAIL", "CRITICAL", "Valid login (after verification)");
 
   const bypass = await call("/api/auth/login", { email: { $gt: "" }, password: { $gt: "" } });
   rec(bypass.status === 400 ? "PASS" : "FAIL", "CRITICAL", "NoSQL operator login bypass blocked");
@@ -87,6 +99,17 @@ const leaks = (raw) =>
     headers: { Cookie: "token=tampered.jwt.value" },
   });
   rec(tampered.status === 401 ? "PASS" : "FAIL", "CRITICAL", "Tampered authentication cookie rejected");
+
+  // Forgot-password must not reveal whether an email exists.
+  const forgotUnknown = await call("/api/auth/forgot-password", { email: `noone_${uniq}@example.com` });
+  const forgotKnown = await call("/api/auth/forgot-password", { email: good.email });
+  rec(
+    forgotUnknown.status === 200 && forgotKnown.status === 200 && forgotUnknown.json.message === forgotKnown.json.message
+      ? "PASS"
+      : "WARN",
+    "MEDIUM",
+    "Forgot-password anti-enumeration"
+  );
 
   // Report
   const counts = { PASS: 0, WARN: 0, FAIL: 0 };
