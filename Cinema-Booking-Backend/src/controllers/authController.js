@@ -99,6 +99,29 @@ const logout = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, message: "Logout successful" });
 });
 
+const forgotPassword = asyncHandler(async (req, res) => {
+  const code = await authService.forgotPassword(req.body);
+  if (code) await emailService.sendResetCode(req.body.email, code);
+  res
+    .status(200)
+    .json(
+      withDevCode({ success: true, message: "If that email is registered, a reset code has been sent." }, code)
+    );
+});
+
+const resetPassword = asyncHandler(async (req, res) => {
+  await authService.resetPassword(req.body);
+  res.status(200).json({ success: true, message: "Password reset successful. Please log in." });
+});
+
+const changePassword = asyncHandler(async (req, res) => {
+  const user = await authService.changePassword({ userId: req.user.userId, ...req.body });
+  // Re-issue tokens so the current session stays valid despite the tokenVersion bump.
+  const { accessToken, refreshToken } = await authService.issueTokens(user);
+  setAuthCookies(res, accessToken, refreshToken);
+  res.status(200).json({ success: true, message: "Password changed successfully" });
+});
+
 module.exports = {
   register,
   login,
@@ -107,4 +130,7 @@ module.exports = {
   logout,
   verifyEmail,
   resendVerification,
+  forgotPassword,
+  resetPassword,
+  changePassword,
 };

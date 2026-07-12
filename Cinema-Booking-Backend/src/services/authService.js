@@ -88,4 +88,55 @@ const resendVerification = async ({ email }) => {
   return code;
 };
 
-module.exports = { register, login, issueTokens, verifyEmail, resendVerification };
+// Returns a reset code if the account exists, else null. Caller always responds
+// with the same generic message so account existence is not revealed.
+const forgotPassword = async ({ email }) => {
+  const user = await User.findOne({ email: email.toLowerCase() });
+  if (!user) return null;
+  const code = generateCode();
+  user.passwordReset = { codeHash: await hashCode(code), expiresAt: codeExpiry(10), attempts: 0 };
+  await user.save();
+  return code;
+};
+
+const resetPassword = async ({ email, code, newPassword }) => {
+  const user = await User.findOne({ email: email.toLowerCase() });
+  const r = user && user.passwordReset;
+  if (!r || !r.codeHash || !r.expiresAt || r.expiresAt < new Date() || r.attempts >= MAX_ATTEMPTS) {
+    throw new AppError("Invalid or expired reset code", 400);
+  }
+  if (!(await compareCode(code, r.codeHash))) {
+    user.passwordReset.attempts += 1;
+    await user.save();
+    throw new AppError("Invalid or expired reset code", 400);
+  }
+  user.password = await bcrypt.hash(newPassword, SALT_ROUNDS);
+  user.passwordReset = { codeHash: null, expiresAt: null, attempts: 0 };
+  user.tokenVersion += 1; // invalidate existing sessions
+  user.refreshTokenHash = null;
+  await user.save();
+};
+
+const changePassword = async ({ userId, currentPassword, newPassword }) => {
+  const user = await User.findById(userId);
+  if (!user) throw new AppError("User not found", 404);
+  if (!(await bcrypt.compare(currentPassword, user.password))) {
+    throw new AppError("Current password is incorrect", 400);
+  }
+  user.password = await bcrypt.hash(newPassword, SALT_ROUNDS);
+  user.tokenVersion += 1;
+  user.refreshTokenHash = null;
+  await user.save();
+  return user;
+};
+
+module.exports = {
+  register,
+  login,
+  issueTokens,
+  verifyEmail,
+  resendVerification,
+  forgotPassword,
+  resetPassword,
+  changePassword,
+};
