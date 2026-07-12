@@ -8,7 +8,7 @@ Node.js, Express 5, MongoDB, and Mongoose.
 
 - **Runtime:** Node.js, Express 5 (CommonJS)
 - **Database:** MongoDB + Mongoose
-- **Auth:** `jsonwebtoken` (JWT in an httpOnly cookie), `bcrypt` password hashing
+- **Auth:** self-implemented JWT (short-lived access + rotating refresh, both in httpOnly cookies), `bcrypt` hashing, email verification and password reset via `nodemailer`
 - **Validation:** `zod` (request-body schemas at the route boundary)
 - **Security:** `helmet`, `express-rate-limit`, constant-time login
 - **Testing:** `jest`, `supertest`, `mongodb-memory-server`
@@ -65,10 +65,16 @@ Seed credentials (challenge-only): `admin@kada.com / admin123`,
 
 | Method | Endpoint | Access | Purpose |
 |--------|----------|--------|---------|
-| POST | `/api/auth/register` | Public | Register a normal user |
-| POST | `/api/auth/login` | Public | Log in, issue JWT cookie |
+| POST | `/api/auth/register` | Public | Register a normal user (sends a verification code) |
+| POST | `/api/auth/verify-email` | Public | Verify the email with the 6-digit code |
+| POST | `/api/auth/resend-verification` | Public | Resend a verification code |
+| POST | `/api/auth/login` | Public | Log in (requires verified email); issues access + refresh cookies |
+| POST | `/api/auth/refresh` | Refresh cookie | Rotate the access + refresh tokens |
+| POST | `/api/auth/forgot-password` | Public | Request a password-reset code |
+| POST | `/api/auth/reset-password` | Public | Reset the password with the code |
+| POST | `/api/auth/change-password` | Auth | Change password (current → new) |
 | GET | `/api/auth/me` | Auth | Current user + role |
-| POST | `/api/auth/logout` | Auth | Clear the auth cookie |
+| POST | `/api/auth/logout` | Auth | Clear cookies and revoke the refresh token |
 | GET | `/api/movies` | Public | List movies (`?search=&genre=&page=&limit=`) |
 | GET | `/api/movies/:id` | Public | Movie detail |
 | POST/PUT/DELETE | `/api/movies/:id?` | Admin | Movie CRUD |
@@ -79,3 +85,18 @@ Seed credentials (challenge-only): `admin@kada.com / admin123`,
 | DELETE | `/api/bookings/:id` | Owner/Admin | Cancel a booking, release seats |
 | GET | `/api/admin/stats` | Admin | Dashboard counts |
 | GET | `/api/admin/bookings` | Admin | All bookings (paginated) |
+
+## Authentication flow
+
+1. **Register** → account created (unverified); a 6-digit code is emailed. In
+   non-production the code is returned as `devCode` for testing.
+2. **Verify email** → account becomes verified and is issued access + refresh cookies.
+3. **Login** (verified only) → issues a short-lived access token and a rotating refresh token.
+4. **Refresh** → rotates both tokens; a reused (rotated-out) refresh token is detected and all
+   sessions are revoked.
+5. **Forgot / reset password** → emailed code (generic 200 either way, so no account enumeration);
+   reset invalidates existing sessions.
+6. **Change password** (logged in) → current + new password; re-issues fresh tokens.
+
+Email transport: real SMTP via `SMTP_*` env vars, or an automatic **Ethereal** test inbox in
+development (a preview URL is logged for each message).
