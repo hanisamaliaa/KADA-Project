@@ -1,4 +1,4 @@
-const jwt = require("jsonwebtoken");
+const { verifyAccessToken } = require("../utils/tokens");
 
 const authenticate = (req, res, next) => {
   try {
@@ -6,8 +6,7 @@ const authenticate = (req, res, next) => {
     if (!token) {
       return res.status(401).json({ success: false, message: "Not authenticated" });
     }
-    const decoded = jwt.verify(token, process.env.JWT_SECRET); 
-    req.user = decoded;
+    req.user = verifyAccessToken(token);
     next();
   } catch (error) {
     return res.status(401).json({ success: false, message: "Invalid or expired token" });

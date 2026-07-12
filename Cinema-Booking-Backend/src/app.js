@@ -2,14 +2,18 @@ const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 
+const helmet = require("helmet");
+
 const authRoutes = require("./routes/authRoutes");
 const movieRoutes = require("./routes/movieRoutes");
 const showtimeRoutes = require("./routes/showtimeRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const { notFound, errorHandler } = require("./middlewares/errorHandler");
 
 const app = express();
 
+app.use(helmet());
 app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
@@ -26,5 +30,9 @@ app.use("/api/movies", movieRoutes);
 app.use("/api/showtimes", showtimeRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/admin", adminRoutes);
+
+// Centralized handlers — must be mounted LAST, after all routes.
+app.use(notFound);
+app.use(errorHandler);
 
 module.exports = app;
