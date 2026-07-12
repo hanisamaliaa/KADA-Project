@@ -1,64 +1,110 @@
 const authService = require("../services/authService");
-
-const generateToken = require("../utils/generateToken");
-
+const emailService = require("../services/emailService");
 const User = require("../models/User");
+const asyncHandler = require("../utils/asyncHandler");
+const AppError = require("../utils/AppError");
+const { setAuthCookies, clearAuthCookies } = require("../utils/cookies");
+const { verifyRefreshToken, hashToken } = require("../utils/tokens");
 
-const cookieOptions = {
-  httpOnly: true,
-  secure: false, // Set to true if using HTTPS
-  sameSite: "lax",
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+const publicUser = (u) => ({ _id: u._id, name: u.name, email: u.email, role: u.role });
+
+// Fields safe to expose via /me — excludes password, code hashes, and token state.
+const SAFE_FIELDS = "-password -verification -passwordReset -refreshTokenHash -tokenVersion";
+
+// Expose the code in responses ONLY in non-production, so automated tests can
+// complete the flow without a real inbox. Never leaks in production.
+const withDevCode = (body, code) => {
+  if (process.env.NODE_ENV !== "production" && code) body.devCode = code;
+  return body;
 };
 
+const register = asyncHandler(async (req, res) => {
+  const { name, email, password } = req.body;
+  const { user, code } = await authService.register({ name, email, password });
+  await emailService.sendVerificationCode(user.email, code);
+  res
+    .status(201)
+    .json(
+      withDevCode(
+        { success: true, message: "Registered. Check your email for a verification code.", data: user },
+        code
+      )
+    );
+});
 
-const register = async (req, res) => {
+const verifyEmail = asyncHandler(async (req, res) => {
+  const user = await authService.verifyEmail(req.body);
+  const { accessToken, refreshToken } = await authService.issueTokens(user);
+  setAuthCookies(res, accessToken, refreshToken);
+  res.status(200).json({ success: true, message: "Email verified", data: publicUser(user) });
+});
+
+const resendVerification = asyncHandler(async (req, res) => {
+  const code = await authService.resendVerification(req.body);
+  if (code) await emailService.sendVerificationCode(req.body.email, code);
+  res
+    .status(200)
+    .json(
+      withDevCode({ success: true, message: "If that account needs verification, a code has been sent." }, code)
+    );
+});
+
+const login = asyncHandler(async (req, res) => {
+  const user = await authService.login(req.body);
+  const { accessToken, refreshToken } = await authService.issueTokens(user);
+  setAuthCookies(res, accessToken, refreshToken);
+  res.status(200).json({ success: true, message: "Login successful", data: publicUser(user) });
+});
+
+const me = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user.userId).select(SAFE_FIELDS);
+  if (!user) throw new AppError("User not found", 404);
+  res.status(200).json({ success: true, data: user });
+});
+
+const refresh = asyncHandler(async (req, res) => {
+  const token = req.cookies?.refreshToken;
+  if (!token) throw new AppError("No refresh token provided", 401);
+
+  let payload;
   try {
-    const { name, email, password } = req.body;
-
-    const user = await authService.register({ name, email, password });
-
-    res.status(201).json({
-      success: true,
-      message: "User registered successfully",
-      data: user,
-    });
-  } catch (error) {
-    const statusCode = error.statusCode || 500;
-    res.status(statusCode).json({
-      success: false,
-      message: error.message || "Internal server error",
-    });
+    payload = verifyRefreshToken(token);
+  } catch {
+    throw new AppError("Invalid refresh token", 401);
   }
-};
 
-const login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const user = await authService.login({ email, password });
-    const token = generateToken(user);
-    res.cookie("token", token, cookieOptions);
-    res.status(200).json({ success: true, message: "Login successful", data: user });
-  } catch (error) {
-    const statusCode = error.statusCode || 500;
-    res.status(statusCode).json({ success: false, message: error.message || "Internal server error" });
+  const user = await User.findById(payload.userId);
+  if (!user || user.tokenVersion !== payload.tokenVersion) {
+    throw new AppError("Invalid refresh token", 401);
   }
-};
 
-const me = async (req, res) => {
-  const user = await User.findById(req.user.userId).select("-password");
-  if (!user) return res.status(404).json({ success: false, message: "User not found" });
-  res.status(200).json({ success: true, data: user }); // { _id, name, email, role }
-};
+  // Reuse detection: a validly-signed refresh token that is NOT the current
+  // stored one means it was already rotated out (stolen/replayed) → revoke all.
+  if (!user.refreshTokenHash || user.refreshTokenHash !== hashToken(token)) {
+    user.tokenVersion += 1;
+    user.refreshTokenHash = null;
+    await user.save();
+    clearAuthCookies(res);
+    throw new AppError("Refresh token reuse detected. Please log in again.", 401);
+  }
 
-const logout = async (req, res) => {
-  res.clearCookie("token", {httpOnly: true, secure: false, sameSite: "lax"});
+  const { accessToken, refreshToken } = await authService.issueTokens(user);
+  setAuthCookies(res, accessToken, refreshToken);
+  res.status(200).json({ success: true, message: "Token refreshed" });
+});
+
+const logout = asyncHandler(async (req, res) => {
+  await User.findByIdAndUpdate(req.user.userId, { refreshTokenHash: null });
+  clearAuthCookies(res);
   res.status(200).json({ success: true, message: "Logout successful" });
-}
+});
 
 module.exports = {
   register,
   login,
   me,
+  refresh,
   logout,
+  verifyEmail,
+  resendVerification,
 };

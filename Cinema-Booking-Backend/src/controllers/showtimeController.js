@@ -1,196 +1,84 @@
 const Showtime = require("../models/Showtime");
 const Movie = require("../models/Movie");
+const asyncHandler = require("../utils/asyncHandler");
+const AppError = require("../utils/AppError");
 
 // GET /api/showtimes?movieId=&date=   (Public)
-const getShowtimes = async (req, res) => {
-  try {
-    const filter = {};
+const getShowtimes = asyncHandler(async (req, res) => {
+  const filter = {};
 
-    // Filter berdasarkan movie
-    if (req.query.movieId) {
-      filter.movieId = req.query.movieId;
-    }
-
-    // Filter berdasarkan tanggal (opsional)
-    if (req.query.date) {
-      const start = new Date(req.query.date);
-      if (Number.isNaN(start.getTime())) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid date query parameter. Use ISO format (YYYY-MM-DD).",
-        });
-      }
-      const end = new Date(start);
-      end.setDate(end.getDate() + 1);
-
-      filter.date = {
-        $gte: start,
-        $lt: end,
-      };
-    }
-
-    const showtimes = await Showtime.find(filter).populate("movieId");
-
-    res.status(200).json({
-      success: true,
-      data: showtimes,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+  if (req.query.movieId) {
+    filter.movieId = req.query.movieId;
   }
-};
+
+  if (req.query.date) {
+    const start = new Date(req.query.date);
+    if (Number.isNaN(start.getTime())) {
+      throw new AppError("Invalid date query parameter. Use ISO format (YYYY-MM-DD).", 400);
+    }
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
+    filter.date = { $gte: start, $lt: end };
+  }
+
+  const showtimes = await Showtime.find(filter).populate("movieId");
+  res.status(200).json({ success: true, data: showtimes });
+});
 
 // GET /api/showtimes/:id   (Public)
-const getShowtimeDetail = async (req, res) => {
-  try {
-    const showtime = await Showtime.findById(req.params.id).populate("movieId");
-
-    if (!showtime) {
-      return res.status(404).json({
-        success: false,
-        message: "Showtime not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      data: showtime,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+const getShowtimeDetail = asyncHandler(async (req, res) => {
+  const showtime = await Showtime.findById(req.params.id).populate("movieId");
+  if (!showtime) throw new AppError("Showtime not found", 404);
+  res.status(200).json({ success: true, data: showtime });
+});
 
 // GET /api/showtimes/:id/seats   (Public)
-const getSeats = async (req, res) => {
-  try {
-    const showtime = await Showtime.findById(req.params.id);
-
-    if (!showtime) {
-      return res.status(404).json({
-        success: false,
-        message: "Showtime not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      data: {
-        bookedSeats: showtime.bookedSeats,
-        layout: {
-          rows: 8,
-          columns: 10,
-        },
-      },
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+const getSeats = asyncHandler(async (req, res) => {
+  const showtime = await Showtime.findById(req.params.id);
+  if (!showtime) throw new AppError("Showtime not found", 404);
+  res.status(200).json({
+    success: true,
+    data: {
+      bookedSeats: showtime.bookedSeats,
+      layout: { rows: 8, columns: 10 },
+    },
+  });
+});
 
 // POST /api/showtimes   (Admin)
-const createShowtime = async (req, res) => {
-  try {
-    // Pastikan movie ada
-    const movie = await Movie.findById(req.body.movieId);
+const createShowtime = asyncHandler(async (req, res) => {
+  const movie = await Movie.findById(req.body.movieId);
+  if (!movie) throw new AppError("Movie not found", 400);
+  if (req.body.price <= 0) throw new AppError("Price must be greater than 0", 400);
 
-    if (!movie) {
-      return res.status(400).json({
-        success: false,
-        message: "Movie not found",
-      });
-    }
-
-    if (req.body.price <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Price must be greater than 0",
-      });
-    }
-
-    const showtime = await Showtime.create(req.body);
-
-    res.status(201).json({
-      success: true,
-      data: showtime,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+  const showtime = await Showtime.create(req.body);
+  res.status(201).json({ success: true, data: showtime });
+});
 
 // PUT /api/showtimes/:id   (Admin)
-const updateShowtime = async (req, res) => {
-  try {
-    // kalau body menyertakan movieId, pastikan movie-nya ada
-    if (req.body.movieId) {
-      const movie = await Movie.findById(req.body.movieId);
-      if (!movie) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Movie not found" });
-      }
-    }
-
-    if (req.body.price !== undefined && req.body.price <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Price must be greater than 0",
-      });
-    }
-
-    const showtime = await Showtime.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
-
-    if (!showtime) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Showtime not found" });
-    }
-
-    res.status(200).json({ success: true, data: showtime });
-  } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+const updateShowtime = asyncHandler(async (req, res) => {
+  if (req.body.movieId) {
+    const movie = await Movie.findById(req.body.movieId);
+    if (!movie) throw new AppError("Movie not found", 400);
   }
-};
+  if (req.body.price !== undefined && req.body.price <= 0) {
+    throw new AppError("Price must be greater than 0", 400);
+  }
+
+  const showtime = await Showtime.findByIdAndUpdate(req.params.id, req.body, {
+    new: true,
+    runValidators: true,
+  });
+  if (!showtime) throw new AppError("Showtime not found", 404);
+  res.status(200).json({ success: true, data: showtime });
+});
 
 // DELETE /api/showtimes/:id   (Admin)
-const deleteShowtime = async (req, res) => {
-  try {
-    const showtime = await Showtime.findByIdAndDelete(req.params.id);
-
-    if (!showtime) {
-      return res.status(404).json({
-        success: false,
-        message: "Showtime not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Showtime deleted successfully",
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+const deleteShowtime = asyncHandler(async (req, res) => {
+  const showtime = await Showtime.findByIdAndDelete(req.params.id);
+  if (!showtime) throw new AppError("Showtime not found", 404);
+  res.status(200).json({ success: true, message: "Showtime deleted successfully" });
+});
 
 module.exports = {
   getShowtimes,
