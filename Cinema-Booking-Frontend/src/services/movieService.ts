@@ -1,5 +1,5 @@
-import api from './api';
-import type { IMovie, MovieFilters } from '@/types';
+import api from "./api";
+import type { IMovie, MovieFilters } from "@/types";
 
 interface BackendMovie {
   _id: string;
@@ -12,7 +12,8 @@ interface BackendMovie {
   description: string;
 }
 
-const DEFAULT_POSTER = 'https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop';
+const DEFAULT_POSTER =
+  "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop";
 
 const isUrl = (s: string) => /^https?:\/\//i.test(s);
 
@@ -22,8 +23,10 @@ const parseRating = (r: string): number => {
 };
 
 const toEmbedUrl = (url: string): string => {
-  if (!url) return '';
-  const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+  if (!url) return "";
+  const ytMatch = url.match(
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/,
+  );
   if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
   return url;
 };
@@ -36,11 +39,11 @@ const mapMovie = (m: BackendMovie): IMovie => ({
   duration: m.duration,
   rating: parseRating(m.rating),
   poster_url: isUrl(m.poster) ? m.poster : DEFAULT_POSTER,
-  trailer_url: toEmbedUrl(m.trailerUrl || ''),
-  release_date: '',
-  status: 'now_showing',
-  createdAt: '',
-  updatedAt: '',
+  trailer_url: toEmbedUrl(m.trailerUrl || ""),
+  release_date: "",
+  status: "now_showing",
+  createdAt: "",
+  updatedAt: "",
 });
 
 export const movieService = {
@@ -49,16 +52,16 @@ export const movieService = {
     if (filters.search) params.search = filters.search;
     if (filters.genre) params.genre = filters.genre;
 
-    const res = await api.get('/movies', { params });
+    const res = await api.get("/movies", { params });
     let movies: IMovie[] = (res.data.data || []).map(mapMovie);
 
-    if (filters.status && filters.status !== 'all') {
+    if (filters.status && filters.status !== "all") {
       movies = movies.filter((m) => m.status === filters.status);
     }
     if (filters.sort) {
-      if (filters.sort === 'release_date') {
+      if (filters.sort === "release_date") {
         movies.sort((a, b) => a.title.localeCompare(b.title));
-      } else if (filters.sort === 'rating') {
+      } else if (filters.sort === "rating") {
         movies.sort((a, b) => (b.rating || 0) - (a.rating || 0));
       } else {
         movies.sort((a, b) => a.title.localeCompare(b.title));
@@ -73,17 +76,17 @@ export const movieService = {
     return mapMovie(res.data.data);
   },
 
-  async createMovie(data: Omit<IMovie, '_id' | 'createdAt' | 'updatedAt'>) {
+  async createMovie(data: Omit<IMovie, "_id" | "createdAt" | "updatedAt">) {
     const payload = {
       title: data.title,
       genre: data.genre,
       duration: data.duration,
       rating: String(data.rating || 0),
       poster: data.poster_url,
-      trailerUrl: data.trailer_url || '',
+      trailerUrl: data.trailer_url || "",
       description: data.description,
     };
-    const res = await api.post('/movies', payload);
+    const res = await api.post("/movies", payload);
     return mapMovie(res.data.data);
   },
 
@@ -103,4 +106,6 @@ export const movieService = {
   async deleteMovie(id: string) {
     await api.delete(`/movies/${id}`);
   },
+
+  getBackendError,
 };

@@ -176,9 +176,13 @@ export default function HomePage() {
                   >
                     <div className="relative overflow-hidden rounded-2xl shadow-poster ring-1 ring-white/[0.12] group-hover:ring-white/[0.2] transition-all duration-500">
                       <img
+                        key={`hero-poster-${featuredMovie._id}-${featuredMovie.updatedAt}`}
                         src={featuredMovie.poster_url || 'https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop'}
                         alt={featuredMovie.title}
                         className="relative w-[270px] h-[405px] object-cover transition-all duration-700 group-hover:scale-105"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop';
+                        }}
                       />
 
                       {/* Light Sweep Effect */}

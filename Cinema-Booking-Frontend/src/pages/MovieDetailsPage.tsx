@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Calendar, Clock, Globe, MapPin, Play, Star, Ticket, Users } from 'lucide-react';
+import { Calendar, Clock, ExternalLink, Globe, MapPin, Play, Star, Ticket, Users } from 'lucide-react';
 import { IMovie, IShowtime } from '@/types';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorMessage from '@/components/ErrorMessage';
 import RecommendationSection from '@/components/RecommendationSection';
 import { movieService } from '@/services/movieService';
 import { showtimeService } from '@/services/showtimeService';
+import { getYouTubeEmbedUrl, extractYouTubeVideoId } from '@/lib/youtube';
 import { motion } from 'framer-motion';
 
 export default function MovieDetailsPage() {
@@ -106,9 +107,13 @@ export default function MovieDetailsPage() {
               <div className="relative group">
                 <div className="absolute -inset-4 bg-gradient-to-b from-primary-500/15 via-primary-500/5 to-transparent rounded-3xl blur-2xl opacity-60 group-hover:opacity-80 transition-opacity duration-700" />
                 <img
+                  key={`detail-poster-${movie._id}-${movie.updatedAt}`}
                   src={movie.poster_url || ''}
                   alt={movie.title}
                   className="relative w-full rounded-3xl shadow-poster ring-1 ring-white/[0.1] transition-transform duration-500 group-hover:scale-[1.02]"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'https://placehold.co/300x450/171717/525252?text=No+Image';
+                  }}
                 />
               </div>
             </div>
@@ -149,7 +154,7 @@ export default function MovieDetailsPage() {
                     {movie.duration} min
                   </span>
                   <span className="info-chip bg-primary-500/10 text-primary-300 border-primary-500/20">
-                    {movie.genre}
+                    {Array.isArray(movie.genre) ? movie.genre.join(', ') : movie.genre}
                   </span>
                   {movie.director && (
                     <span className="info-chip">
@@ -226,28 +231,6 @@ export default function MovieDetailsPage() {
                 <p className="text-white font-medium leading-relaxed">{movie.cast?.join(', ') || 'To be announced'}</p>
               </div>
             </motion.div>
-
-            {/* Trailer */}
-            {movie.trailer_url && (
-              <motion.div
-                id="trailer"
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-              >
-                <p className="section-eyebrow mb-3">Preview</p>
-                <h2 className="text-xl font-display font-bold text-white mb-5">Trailer</h2>
-                <div className="aspect-video rounded-2xl overflow-hidden bg-white/[0.03] ring-1 ring-white/[0.06] shadow-cinema">
-                  <iframe
-                    src={movie.trailer_url}
-                    title={`${movie.title} Trailer`}
-                    className="w-full h-full"
-                    allowFullScreen
-                  />
-                </div>
-              </motion.div>
-            )}
           </div>
 
           {/* Showtimes Sidebar */}
@@ -335,6 +318,75 @@ export default function MovieDetailsPage() {
           </aside>
         </div>
       </div>
+
+      {/* Trailer - Full width, centered */}
+      {(() => {
+        const trailerUrl = movie.trailer_url || '';
+        const embedUrl = getYouTubeEmbedUrl(trailerUrl);
+        const videoId = extractYouTubeVideoId(trailerUrl);
+
+        if (!trailerUrl.trim()) {
+          return (
+            <motion.div
+              id="trailer"
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 pb-14"
+            >
+              <p className="section-eyebrow mb-3">Preview</p>
+              <h2 className="text-xl font-display font-bold text-white mb-5">Trailer</h2>
+              <div className="aspect-video rounded-2xl overflow-hidden bg-white/[0.03] ring-1 ring-white/[0.06] shadow-cinema flex items-center justify-center">
+                <p className="text-neutral-500 text-sm">Trailer is not available.</p>
+              </div>
+            </motion.div>
+          );
+        }
+
+        return (
+          <motion.div
+            id="trailer"
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 pb-14"
+          >
+            <p className="section-eyebrow mb-3">Preview</p>
+            <h2 className="text-xl font-display font-bold text-white mb-5">Trailer</h2>
+            {embedUrl ? (
+              <div className="aspect-video rounded-2xl overflow-hidden bg-white/[0.03] ring-1 ring-white/[0.06] shadow-cinema">
+                <iframe
+                  src={embedUrl}
+                  title={`${movie.title} trailer`}
+                  className="w-full h-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  allowFullScreen
+                />
+              </div>
+            ) : (
+              <div className="aspect-video rounded-2xl overflow-hidden bg-white/[0.03] ring-1 ring-white/[0.06] shadow-cinema flex items-center justify-center">
+                <p className="text-neutral-500 text-sm">Trailer is not available.</p>
+              </div>
+            )}
+            {videoId && (
+              <div className="flex justify-center mt-4">
+                <a
+                  href={`https://www.youtube.com/watch?v=${videoId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-primary-400 transition-colors duration-200"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Watch on YouTube
+                </a>
+              </div>
+            )}
+          </motion.div>
+        );
+      })()}
 
       {/* Recommendations */}
       <div className="max-w-7xl mx-auto px-4 py-14 sm:px-6 lg:px-8">

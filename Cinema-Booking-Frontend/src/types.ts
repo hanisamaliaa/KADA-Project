@@ -12,10 +12,11 @@ export interface IMovie {
   _id: string;
   title: string;
   description: string;
-  genre: string;
+  genre: string[];
   duration: number;
   release_date: string;
   poster_url: string;
+  poster?: string;
   trailer_url?: string;
   backdrop_url?: string;
   classification?: string;

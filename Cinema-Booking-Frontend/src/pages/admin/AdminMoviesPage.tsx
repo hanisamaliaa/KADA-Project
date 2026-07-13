@@ -1,15 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Image, Film, X, Upload, FileImage } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorMessage from '@/components/ErrorMessage';
 import toast from 'react-hot-toast';
 import { useSearchParams } from 'react-router-dom';
 import { movieService } from '@/services/movieService';
+import { extractYouTubeVideoId, getYouTubeEmbedUrl } from '@/lib/youtube';
 import type { IMovie } from '@/types';
 
-type MovieFormData = Omit<IMovie, '_id' | 'createdAt' | 'updatedAt'>;
+interface MovieFormInputs {
+  title: string;
+  description: string;
+  genre: string;
+  duration: number;
+  rating: string;
+  trailerUrl: string;
+}
 
 interface MovieFormProps {
   movieToEdit: IMovie | null;
@@ -17,59 +25,191 @@ interface MovieFormProps {
   onSave: () => void;
 }
 
+const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const MAX_SIZE = 5 * 1024 * 1024;
+
+const ACCEPT_STRING = ALLOWED_TYPES.join(',');
+
 const modalOverlayVariants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { duration: 0.2 } },
   exit: { opacity: 0, transition: { duration: 0.15 } },
-}
+};
 
 const modalContentVariants = {
   hidden: { opacity: 0, scale: 0.95, y: 12 },
   visible: { opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 400, damping: 30 } },
   exit: { opacity: 0, scale: 0.95, y: 12, transition: { duration: 0.15 } },
-}
+};
+
+const formatFileSize = (bytes: number): string => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
 
 const MovieForm: React.FC<MovieFormProps> = ({ movieToEdit, onClose, onSave }) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [posterFile, setPosterFile] = useState<File | null>(null);
+  const [posterPreview, setPosterPreview] = useState<string>('');
+  const [posterError, setPosterError] = useState<string>('');
+  const [isDragging, setIsDragging] = useState(false);
+  const [trailerPreviewUrl, setTrailerPreviewUrl] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const {
     register,
     handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<MovieFormData>();
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<MovieFormInputs>({
+    defaultValues: {
+      title: '',
+      description: '',
+      genre: '',
+      duration: 0,
+      rating: '',
+      trailerUrl: '',
+    },
+  });
 
+  const watchTrailerUrl = watch('trailerUrl');
+
+  // Initialize form with edit data
   useEffect(() => {
     if (movieToEdit) {
-      reset({
-        ...movieToEdit,
-        release_date: new Date(movieToEdit.release_date).toISOString().split('T')[0],
-      });
-    } else {
-      reset();
-    }
-  }, [movieToEdit, reset]);
+      // Pre-fill all form fields with existing movie data
+      setValue('title', movieToEdit.title || '');
+      setValue('description', movieToEdit.description || '');
+      setValue('genre', movieToEdit.genre || '');
+      setValue('duration', movieToEdit.duration || 0);
+      setValue('rating', movieToEdit.rating ? String(movieToEdit.rating) : '');
+      setValue('trailerUrl', movieToEdit.trailer_url || '');
 
-  const onSubmit: SubmitHandler<MovieFormData> = async (formData) => {
-    try {
-      const dataToSubmit = {
-        ...formData,
-        duration: Number(formData.duration),
-      };
-
-      if (movieToEdit) {
-        await movieService.updateMovie(movieToEdit._id, dataToSubmit);
-      } else {
-        await movieService.createMovie({
-          ...dataToSubmit,
-          status: dataToSubmit.status || 'now_showing',
-          is_now_showing: dataToSubmit.status !== 'coming_soon',
-        });
+      // Show existing poster as preview
+      if (movieToEdit.poster_url) {
+        setPosterPreview(movieToEdit.poster_url);
       }
 
-      toast.success(`Movie ${movieToEdit ? 'updated' : 'added'} successfully!`);
+      // Show trailer preview
+      const trailerVal = movieToEdit.trailer_url || '';
+      if (trailerVal) {
+        setTrailerPreviewUrl(getYouTubeEmbedUrl(trailerVal) || '');
+      }
+    }
+  }, [movieToEdit, setValue]);
+
+  // Trailer preview
+  useEffect(() => {
+    if (watchTrailerUrl) {
+      setTrailerPreviewUrl(getYouTubeEmbedUrl(watchTrailerUrl) || '');
+    } else {
+      setTrailerPreviewUrl('');
+    }
+  }, [watchTrailerUrl]);
+
+  const validateFile = (file: File): string | null => {
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return 'Only JPG, PNG, and WEBP images are allowed';
+    }
+    if (file.size > MAX_SIZE) {
+      return `File size exceeds 5 MB limit (${formatFileSize(file.size)})`;
+    }
+    return null;
+  };
+
+  const handleFileSelect = (file: File) => {
+    const error = validateFile(file);
+    if (error) {
+      setPosterError(error);
+      toast.error(error);
+      return;
+    }
+    setPosterError('');
+    setPosterFile(file);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setPosterPreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleFileSelect(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleFileSelect(file);
+  };
+
+  const handleRemovePoster = () => {
+    setPosterFile(null);
+    setPosterPreview('');
+    setPosterError('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleChangeImage = () => {
+    fileInputRef.current?.click();
+  };
+
+  const onSubmit: SubmitHandler<MovieFormInputs> = async (formData) => {
+    // Validate poster
+    if (!movieToEdit && !posterFile) {
+      setPosterError('Poster image is required');
+      toast.error('Please upload a poster image');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setPosterError('');
+    try {
+      if (movieToEdit) {
+        await movieService.updateMovie(movieToEdit._id, {
+          title: formData.title,
+          description: formData.description,
+          genre: formData.genre,
+          duration: Number(formData.duration),
+          rating: formData.rating,
+          trailerUrl: formData.trailerUrl,
+          posterFile: posterFile || undefined,
+        });
+        toast.success('Movie updated successfully');
+      } else {
+        await movieService.createMovie({
+          title: formData.title,
+          description: formData.description,
+          genre: formData.genre,
+          duration: Number(formData.duration),
+          rating: formData.rating,
+          trailerUrl: formData.trailerUrl,
+          posterFile: posterFile!,
+        });
+        toast.success('Movie added successfully');
+      }
       onSave();
     } catch (error: any) {
-      toast.error(error.message);
-      console.error('Error saving movie:', error);
+      const msg = movieService.getBackendError(error);
+      toast.error(msg);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -79,71 +219,287 @@ const MovieForm: React.FC<MovieFormProps> = ({ movieToEdit, onClose, onSave }) =
       initial="hidden"
       animate="visible"
       exit="exit"
-      className="fixed inset-0 bg-dark-950/80 backdrop-blur-sm z-50 flex items-center justify-center"
+      className="fixed inset-0 bg-dark-950/80 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto py-8 px-4"
     >
       <motion.div
         variants={modalContentVariants}
         initial="hidden"
         animate="visible"
         exit="exit"
-        className="card w-full max-w-2xl p-6 relative"
+        className="card w-full max-w-3xl relative"
       >
-        <button onClick={onClose} className="absolute top-4 right-4 text-neutral-400 hover:text-white p-1 rounded-xl hover:bg-dark-800/60 transition-all duration-200">&times;</button>
-        <h2 className="text-2xl font-display font-bold text-white mb-6">{movieToEdit ? 'Edit Movie' : 'Add New Movie'}</h2>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-white/[0.06]">
+          <h2 className="text-2xl font-display font-bold text-white">
+            {movieToEdit ? 'Edit Movie' : 'Add New Movie'}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-neutral-400 hover:text-white p-2 rounded-xl hover:bg-dark-800/60 transition-all duration-200"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
+          {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-neutral-300 mb-1">Title</label>
-            <input {...register('title', { required: 'Title is required' })} className="input" />
-            {errors.title && <p className="text-red-400 text-sm mt-1">{errors.title.message}</p>}
+            <label className="block text-sm font-medium text-neutral-300 mb-2">
+              Movie Title <span className="text-red-400">*</span>
+            </label>
+            <input
+              {...register('title', {
+                required: 'Movie title is required',
+                minLength: { value: 1, message: 'Title cannot be empty' },
+              })}
+              className="input"
+              placeholder="Enter movie title"
+            />
+            {errors.title && (
+              <p className="mt-1.5 text-sm text-red-400">{errors.title.message}</p>
+            )}
           </div>
+
+          {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-neutral-300 mb-1">Description</label>
-            <textarea {...register('description')} className="input" rows={4}></textarea>
+            <label className="block text-sm font-medium text-neutral-300 mb-2">
+              Description <span className="text-red-400">*</span>
+            </label>
+            <textarea
+              {...register('description', {
+                required: 'Description is required',
+                minLength: { value: 10, message: 'Description must be at least 10 characters' },
+              })}
+              className="input min-h-[100px] resize-y"
+              rows={4}
+              placeholder="Enter movie description"
+            />
+            {errors.description && (
+              <p className="mt-1.5 text-sm text-red-400">{errors.description.message}</p>
+            )}
           </div>
+
+          {/* Genre & Duration */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1">Genre</label>
-              <input {...register('genre', { required: 'Genre is required' })} className="input" />
-              {errors.genre && <p className="text-red-400 text-sm mt-1">{errors.genre.message}</p>}
+              <label className="block text-sm font-medium text-neutral-300 mb-2">
+                Genre <span className="text-red-400">*</span>
+              </label>
+              <input
+                {...register('genre', {
+                  required: 'Genre is required',
+                })}
+                className="input"
+                placeholder="e.g. Action, Drama, Comedy"
+              />
+              {errors.genre && (
+                <p className="mt-1.5 text-sm text-red-400">{errors.genre.message}</p>
+              )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1">Duration (minutes)</label>
-              <input type="number" {...register('duration', { required: 'Duration is required' })} className="input" />
-              {errors.duration && <p className="text-red-400 text-sm mt-1">{errors.duration.message}</p>}
+              <label className="block text-sm font-medium text-neutral-300 mb-2">
+                Duration (minutes) <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="number"
+                {...register('duration', {
+                  required: 'Duration is required',
+                  min: { value: 1, message: 'Duration must be at least 1 minute' },
+                  valueAsNumber: true,
+                })}
+                className="input"
+                placeholder="e.g. 120"
+                min={1}
+              />
+              {errors.duration && (
+                <p className="mt-1.5 text-sm text-red-400">{errors.duration.message}</p>
+              )}
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1">Release Date</label>
-              <input type="date" {...register('release_date', { required: 'Release date is required' })} className="input" />
-              {errors.release_date && <p className="text-red-400 text-sm mt-1">{errors.release_date.message}</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1">Poster URL</label>
-              <input {...register('poster_url')} className="input" />
-            </div>
-          </div>
+
+          {/* PG Rating */}
           <div>
-            <label className="block text-sm font-medium text-neutral-300 mb-1">Trailer URL (Embed)</label>
-            <input {...register('trailer_url')} className="input" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-neutral-300 mb-1">Status</label>
-            <select {...register('status')} className="input">
-              <option value="now_showing">Now Showing</option>
-              <option value="coming_soon">Coming Soon</option>
+            <label className="block text-sm font-medium text-neutral-300 mb-2">
+              PG Rating <span className="text-red-400">*</span>
+            </label>
+            <select
+              {...register('rating', {
+                required: 'Rating is required',
+              })}
+              className="input"
+            >
+              <option value="">Select rating</option>
+              <option value="G">G - General Audiences</option>
+              <option value="PG">PG - Parental Guidance</option>
+              <option value="PG-13">PG-13 - Parents Strongly Cautioned</option>
+              <option value="R">R - Restricted</option>
+              <option value="NC-17">NC-17 - Adults Only</option>
             </select>
+            {errors.rating && (
+              <p className="mt-1.5 text-sm text-red-400">{errors.rating.message}</p>
+            )}
           </div>
-          <div className="flex justify-end space-x-4 pt-4">
-            <button type="button" onClick={onClose} className="btn btn-secondary">Cancel</button>
+
+          {/* Poster Upload */}
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-2">
+              Poster Image <span className="text-red-400">*</span>
+            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={ACCEPT_STRING}
+              onChange={handleFileInputChange}
+              className="hidden"
+            />
+
+            {posterPreview ? (
+              /* Preview state */
+              <div className="relative">
+                <div className="flex gap-4 items-start">
+                  <div className="w-32 h-48 rounded-xl overflow-hidden border border-white/[0.1] bg-dark-800/40 flex-shrink-0">
+                    <img
+                      src={posterPreview}
+                      alt="Poster preview"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://placehold.co/300x450/171717/525252?text=No+Image';
+                      }}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    {posterFile && (
+                      <div className="flex items-center gap-2 text-sm text-neutral-400 mb-3">
+                        <FileImage className="h-4 w-4 text-primary-400 flex-shrink-0" />
+                        <span className="truncate">{posterFile.name}</span>
+                        <span className="text-neutral-600 flex-shrink-0">({formatFileSize(posterFile.size)})</span>
+                      </div>
+                    )}
+                    {movieToEdit && !posterFile && (
+                      <p className="text-sm text-neutral-500 mb-3">Using existing poster</p>
+                    )}
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleChangeImage}
+                        className="btn btn-secondary btn-sm text-xs"
+                      >
+                        <Upload className="h-3.5 w-3.5" />
+                        Change Image
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleRemovePoster}
+                        className="btn btn-ghost btn-sm text-xs text-red-400 hover:text-red-300"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Drop zone state */
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={`
+                  relative cursor-pointer rounded-xl border-2 border-dashed p-8
+                  transition-all duration-200 text-center
+                  ${isDragging
+                    ? 'border-primary-500 bg-primary-500/10'
+                    : 'border-white/[0.12] hover:border-white/[0.25] hover:bg-white/[0.02]'
+                  }
+                `}
+              >
+                <div className="flex flex-col items-center gap-3">
+                  <div className={`
+                    w-14 h-14 rounded-2xl flex items-center justify-center
+                    transition-colors duration-200
+                    ${isDragging ? 'bg-primary-500/20 text-primary-400' : 'bg-dark-800/60 text-neutral-500'}
+                  `}>
+                    <Image className="h-7 w-7" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-neutral-300">
+                      {isDragging ? 'Drop your image here' : 'Click to upload or drag & drop'}
+                    </p>
+                    <p className="text-xs text-neutral-500 mt-1">
+                      JPG, PNG, or WEBP - Max 5 MB
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {posterError && (
+              <p className="mt-1.5 text-sm text-red-400">{posterError}</p>
+            )}
+          </div>
+
+          {/* Trailer URL */}
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-2">
+              Trailer URL (YouTube) <span className="text-red-400">*</span>
+            </label>
+            <input
+              {...register('trailerUrl', {
+                required: 'Trailer URL is required',
+                validate: (value) => {
+                  if (!value) return 'Trailer URL is required';
+                  const ytId = extractYouTubeVideoId(value);
+                  if (!ytId) return 'Please enter a valid YouTube URL';
+                  return true;
+                },
+              })}
+              className="input"
+              placeholder="https://www.youtube.com/watch?v=..."
+            />
+            {errors.trailerUrl && (
+              <p className="mt-1.5 text-sm text-red-400">{errors.trailerUrl.message}</p>
+            )}
+            {trailerPreviewUrl && (
+              <div className="mt-3 aspect-video rounded-xl overflow-hidden border border-white/[0.1] bg-dark-800/40">
+                <iframe
+                  src={trailerPreviewUrl}
+                  title="Trailer Preview"
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/[0.06]">
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn btn-secondary"
+              disabled={isSubmitting}
+            >
+              Cancel
+            </button>
             <motion.button
               type="submit"
               disabled={isSubmitting}
-              className="btn btn-primary"
+              className="btn btn-primary min-w-[140px]"
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
             >
-              {isSubmitting ? <LoadingSpinner size="sm" /> : 'Save Movie'}
+              {isSubmitting ? (
+                <span className="flex items-center gap-2">
+                  <LoadingSpinner size="sm" />
+                  {movieToEdit ? 'Updating...' : 'Creating...'}
+                </span>
+              ) : (
+                movieToEdit ? 'Update Movie' : 'Create Movie'
+              )}
             </motion.button>
           </div>
         </form>
@@ -159,13 +515,24 @@ interface DeleteModalProps {
 }
 
 const DeleteConfirmationModal: React.FC<DeleteModalProps> = ({ movie, onClose, onConfirm }) => {
+  const [deleting, setDeleting] = useState(false);
+
+  const handleConfirm = async () => {
+    setDeleting(true);
+    try {
+      await onConfirm(movie._id);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <motion.div
       variants={modalOverlayVariants}
       initial="hidden"
       animate="visible"
       exit="exit"
-      className="fixed inset-0 bg-dark-950/80 backdrop-blur-sm z-50 flex items-center justify-center"
+      className="fixed inset-0 bg-dark-950/80 backdrop-blur-sm z-50 flex items-center justify-center px-4"
     >
       <motion.div
         variants={modalContentVariants}
@@ -174,21 +541,30 @@ const DeleteConfirmationModal: React.FC<DeleteModalProps> = ({ movie, onClose, o
         exit="exit"
         className="card p-6 w-full max-w-md"
       >
-        <h2 className="text-xl font-display font-bold text-white mb-4">Confirm Deletion</h2>
-        <p className="text-neutral-300 mb-6">
-          Are you sure you want to delete the movie "<strong className="text-white">{movie.title}</strong>"? This action cannot be undone.
+        <h2 className="text-xl font-display font-bold text-white mb-2">Confirm Deletion</h2>
+        <p className="text-neutral-400 mb-6">
+          Are you sure you want to delete{' '}
+          <strong className="text-white">"{movie.title}"</strong>? This action cannot be undone.
         </p>
-        <div className="flex justify-end space-x-4">
-          <button onClick={onClose} className="btn btn-secondary">
+        <div className="flex justify-end gap-3">
+          <button onClick={onClose} className="btn btn-secondary" disabled={deleting}>
             Cancel
           </button>
           <motion.button
-            onClick={() => onConfirm(movie._id)}
+            onClick={handleConfirm}
             className="btn btn-danger"
+            disabled={deleting}
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
           >
-            Delete Movie
+            {deleting ? (
+              <span className="flex items-center gap-2">
+                <LoadingSpinner size="sm" />
+                Deleting...
+              </span>
+            ) : (
+              'Delete Movie'
+            )}
           </motion.button>
         </div>
       </motion.div>
@@ -212,19 +588,19 @@ export default function AdminMoviesPage() {
     fetchMovies();
   }, []);
 
-  const fetchMovies = async () => {
+  const fetchMovies = useCallback(async () => {
     setLoading(true);
     try {
       setError('');
       const data = await movieService.getMovies();
       setMovies(data || []);
-    } catch (error) {
-      console.error('Error fetching movies:', error);
-      setError('Unable to load movies. Please try again.');
+    } catch (err: any) {
+      console.error('Error fetching movies:', err);
+      setError(movieService.getBackendError(err));
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const handleOpenModal = (movie: IMovie | null) => {
     setEditingMovie(movie);
@@ -256,12 +632,11 @@ export default function AdminMoviesPage() {
   const handleConfirmDelete = async (movieId: string) => {
     try {
       await movieService.deleteMovie(movieId);
-
       toast.success('Movie deleted successfully');
       fetchMovies();
-    } catch (error: any) {
-      console.error('Error deleting movie:', error);
-      toast.error(error.message);
+    } catch (err: any) {
+      const msg = movieService.getBackendError(err);
+      toast.error(msg);
     } finally {
       setMovieToDelete(null);
     }
@@ -276,12 +651,10 @@ export default function AdminMoviesPage() {
   }
 
   if (error) {
-    return (
-      <ErrorMessage message={error} onRetry={fetchMovies} />
-    );
+    return <ErrorMessage message={error} onRetry={fetchMovies} />;
   }
 
-  const genres = [...new Set(movies.map((movie) => movie.genre))];
+  const genres = [...new Set(movies.map((movie) => movie.genre))].sort();
   const filteredMovies = movies.filter((movie) => {
     const matchesSearch = !searchTerm || movie.title.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesGenre = !genreFilter || movie.genre === genreFilter;
@@ -318,11 +691,12 @@ export default function AdminMoviesPage() {
         )}
       </AnimatePresence>
 
+      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
-        className="flex items-center justify-between"
+        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
       >
         <div>
           <h1 className="text-3xl font-display font-bold text-white">Movies</h1>
@@ -339,6 +713,7 @@ export default function AdminMoviesPage() {
         </motion.button>
       </motion.div>
 
+      {/* Filters */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -351,23 +726,37 @@ export default function AdminMoviesPage() {
           className="input"
           placeholder="Search movies..."
         />
-        <select value={genreFilter} onChange={(event) => setGenreFilter(event.target.value)} className="input">
+        <select
+          value={genreFilter}
+          onChange={(event) => setGenreFilter(event.target.value)}
+          className="input"
+        >
           <option value="">All Genres</option>
-          {genres.map((genre) => <option key={genre} value={genre}>{genre}</option>)}
+          {genres.map((genre) => (
+            <option key={genre} value={genre}>
+              {genre}
+            </option>
+          ))}
         </select>
-        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="input">
+        <select
+          value={statusFilter}
+          onChange={(event) => setStatusFilter(event.target.value)}
+          className="input"
+        >
           <option value="all">All Status</option>
           <option value="now_showing">Now Showing</option>
           <option value="coming_soon">Coming Soon</option>
         </select>
       </motion.div>
 
+      {/* Movie List */}
       {filteredMovies.length === 0 ? (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center py-12 card"
         >
+          <Film className="h-12 w-12 text-neutral-600 mx-auto mb-4" />
           <p className="text-neutral-400 text-lg mb-4">No movies found</p>
           <motion.button
             onClick={() => handleOpenModal(null)}
@@ -398,8 +787,8 @@ export default function AdminMoviesPage() {
                   <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
                     Duration
                   </th>
-                  <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                    Release Date
+                  <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider hidden md:table-cell">
+                    PG Rating
                   </th>
                   <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
                     Status
@@ -419,9 +808,13 @@ export default function AdminMoviesPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <img
+                          key={`poster-${movie._id}-${movie.updatedAt}`}
                           src={movie.poster_url || 'https://placehold.co/100x150/171717/525252?text=No+Image'}
                           alt={movie.title}
                           className="w-12 h-18 object-cover rounded-xl"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://placehold.co/100x150/171717/525252?text=No+Image';
+                          }}
                         />
                         <div className="ml-4">
                           <div className="text-sm font-medium text-white max-w-xs truncate">
@@ -434,15 +827,13 @@ export default function AdminMoviesPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="cinema-badge">
-                        {movie.genre}
-                      </span>
+                      <span className="cinema-badge">{movie.genre}</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-300">
                       {movie.duration} mins
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-300">
-                      {new Date(movie.release_date).toLocaleDateString()}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-300 hidden md:table-cell">
+                      {movie.rating || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {movie.status === 'coming_soon' ? (
@@ -462,6 +853,7 @@ export default function AdminMoviesPage() {
                           className="text-green-400 hover:text-green-300 p-2 rounded-xl hover:bg-dark-700/60 transition-all duration-200"
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
+                          title="Edit movie"
                         >
                           <Edit className="h-4 w-4" />
                         </motion.button>
@@ -470,6 +862,7 @@ export default function AdminMoviesPage() {
                           className="text-red-400 hover:text-red-300 p-2 rounded-xl hover:bg-dark-700/60 transition-all duration-200"
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
+                          title="Delete movie"
                         >
                           <Trash2 className="h-4 w-4" />
                         </motion.button>

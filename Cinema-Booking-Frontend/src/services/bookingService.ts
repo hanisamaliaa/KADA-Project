@@ -1,18 +1,35 @@
-import api from './api';
-import type { BookingInput, IBooking } from '@/types';
+import api from "./api";
+import type { BookingInput, IBooking } from "@/types";
 
 interface BackendBooking {
   _id: string;
   userId: { _id: string; name: string; email: string; role: string };
-  movieId: { _id: string; title: string; genre: string; duration: number; poster: string; rating: string; description: string; trailerUrl: string };
-  showtimeId: { _id: string; date: string; time: string; studio: string; price: number; bookedSeats: string[] };
+  movieId: {
+    _id: string;
+    title: string;
+    genre: string;
+    duration: number;
+    poster: string;
+    rating: string;
+    description: string;
+    trailerUrl: string;
+  };
+  showtimeId: {
+    _id: string;
+    date: string;
+    time: string;
+    studio: string;
+    price: number;
+    bookedSeats: string[];
+  };
   seats: string[];
   totalPrice: number;
-  status: 'confirmed' | 'cancelled';
+  status: "confirmed" | "cancelled";
   createdAt: string;
 }
 
-const DEFAULT_POSTER = 'https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop';
+const DEFAULT_POSTER =
+  "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop";
 const isUrl = (s: string) => /^https?:\/\//i.test(s);
 
 const mapBooking = (b: BackendBooking): IBooking => ({
@@ -22,7 +39,7 @@ const mapBooking = (b: BackendBooking): IBooking => ({
     _id: b.userId._id,
     email: b.userId.email,
     fullName: b.userId.name,
-    role: (b.userId.role as 'user' | 'admin') || 'user',
+    role: (b.userId.role as "user" | "admin") || "user",
   },
   showtime: {
     _id: b.showtimeId._id,
@@ -35,10 +52,10 @@ const mapBooking = (b: BackendBooking): IBooking => ({
       rating: parseFloat(b.movieId.rating) || 0,
       description: b.movieId.description,
       trailer_url: b.movieId.trailerUrl,
-      release_date: '',
-      status: 'now_showing',
-      createdAt: '',
-      updatedAt: '',
+      release_date: "",
+      status: "now_showing",
+      createdAt: "",
+      updatedAt: "",
     },
     hall: {
       _id: b.showtimeId._id,
@@ -46,12 +63,12 @@ const mapBooking = (b: BackendBooking): IBooking => ({
       total_seats: 80,
       layout_rows: 8,
       layout_columns: 10,
-      createdAt: '',
-      updatedAt: '',
+      createdAt: "",
+      updatedAt: "",
     },
     show_date: b.showtimeId.date,
     start_time: b.showtimeId.time,
-    end_time: '',
+    end_time: "",
     ticket_price: b.showtimeId.price,
   },
   booking_date: b.createdAt,
@@ -61,7 +78,7 @@ const mapBooking = (b: BackendBooking): IBooking => ({
   selected_seats: b.seats,
 });
 
-const DEMO_CONFIRMED_BOOKING_KEY = 'cinematix_demo_confirmed_booking';
+const DEMO_CONFIRMED_BOOKING_KEY = "cinematix_demo_confirmed_booking";
 
 export const bookingService = {
   async getSeatAvailability(showtimeId: string) {
@@ -70,7 +87,7 @@ export const bookingService = {
   },
 
   async createBooking(input: BookingInput) {
-    const res = await api.post('/bookings', {
+    const res = await api.post("/bookings", {
       showtimeId: input.showtime,
       seats: input.selected_seats,
     });
@@ -80,7 +97,7 @@ export const bookingService = {
   },
 
   async getMyBookings(_userId: string) {
-    const res = await api.get('/bookings/me');
+    const res = await api.get("/bookings/me");
     return (res.data.data || []).map(mapBooking);
   },
 
@@ -95,10 +112,10 @@ export const bookingService = {
   },
 
   getConfirmedBookingId() {
-    return sessionStorage.getItem('cinematix_demo_confirmed_booking');
+    return sessionStorage.getItem("cinematix_demo_confirmed_booking");
   },
 
   clearConfirmedBookingId() {
-    sessionStorage.removeItem('cinematix_demo_confirmed_booking');
+    sessionStorage.removeItem("cinematix_demo_confirmed_booking");
   },
 };

@@ -21,10 +21,14 @@ export default function MovieCard({ movie }: MovieCardProps) {
       <div className="relative aspect-[2/3] overflow-hidden bg-white/[0.02]">
         {/* Poster Image */}
         <img
+          key={`poster-${movie._id}-${movie.updatedAt}`}
           src={movie.poster_url || 'https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop'}
           alt={movie.title}
           className="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-110"
           loading="lazy"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = 'https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop';
+          }}
         />
         
         {/* Gradient Overlay */}

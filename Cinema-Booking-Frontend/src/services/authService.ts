@@ -1,39 +1,39 @@
-import api from './api';
-import type { AuthUser } from '@/types';
+import api from "./api";
+import type { AuthUser } from "@/types";
 
-const DEMO_SESSION_KEY = 'cinematix_demo_user';
+const DEMO_SESSION_KEY = "cinematix_demo_user";
 
 const mapUser = (data: Record<string, unknown>): AuthUser => ({
   id: data._id as string,
   _id: data._id as string,
   email: data.email as string,
   fullName: data.name as string,
-  role: (data.role as 'user' | 'admin') || 'user',
+  role: (data.role as "user" | "admin") || "user",
 });
 
 export const authService = {
   async login(email: string, password: string) {
-    const res = await api.post('/auth/login', { email, password });
+    const res = await api.post("/auth/login", { email, password });
     const user = mapUser(res.data.data);
     localStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(user));
     return user;
   },
 
   async adminLogin(usernameOrEmail: string, password: string) {
-    const res = await api.post('/auth/login', {
+    const res = await api.post("/auth/login", {
       email: usernameOrEmail,
       password,
     });
     const user = mapUser(res.data.data);
-    if (user.role !== 'admin') {
-      throw new Error('Invalid admin credentials');
+    if (user.role !== "admin") {
+      throw new Error("Invalid admin credentials");
     }
     localStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(user));
     return user;
   },
 
   async register(email: string, password: string, fullName: string) {
-    const res = await api.post('/auth/register', {
+    const res = await api.post("/auth/register", {
       name: fullName,
       email,
       password,
@@ -44,24 +44,29 @@ export const authService = {
 
   // Verifying the email also logs the user in (backend sets the auth cookies).
   async verifyEmail(email: string, code: string) {
-    const res = await api.post('/auth/verify-email', { email, code });
+    const res = await api.post("/auth/verify-email", { email, code });
     const user = mapUser(res.data.data);
     localStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(user));
     return user;
   },
 
   async resendVerification(email: string) {
-    const res = await api.post('/auth/resend-verification', { email });
+    const res = await api.post("/auth/resend-verification", { email });
     return res.data; // may include devCode in non-production
   },
 
   async forgotPassword(email: string) {
-    const res = await api.post('/auth/forgot-password', { email });
+    const res = await api.post("/auth/forgot-password", { email });
     return res.data; // may include devCode in non-production
   },
 
-  async resetPassword(email: string, code: string, newPassword: string, confirmPassword: string) {
-    const res = await api.post('/auth/reset-password', {
+  async resetPassword(
+    email: string,
+    code: string,
+    newPassword: string,
+    confirmPassword: string,
+  ) {
+    const res = await api.post("/auth/reset-password", {
       email,
       code,
       newPassword,
@@ -72,7 +77,7 @@ export const authService = {
 
   async logout() {
     try {
-      await api.post('/auth/logout');
+      await api.post("/auth/logout");
     } finally {
       localStorage.removeItem(DEMO_SESSION_KEY);
     }
@@ -80,7 +85,7 @@ export const authService = {
 
   async getCurrentUser() {
     try {
-      const res = await api.get('/auth/me');
+      const res = await api.get("/auth/me");
       const user = mapUser(res.data.data);
       localStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(user));
       return user;
