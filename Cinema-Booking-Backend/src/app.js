@@ -15,13 +15,15 @@ const { notFound, errorHandler } = require("./middlewares/errorHandler");
 
 const app = express();
 
+// Serve uploaded poster images BEFORE helmet so that
+// Cross-Origin-Resource-Policy and Content-Security-Policy
+// headers from helmet do not block cross-origin image loading.
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+
 app.use(helmet());
 app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
-
-// Serve uploaded poster images as static files
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 app.get("/", (req, res) => {
   res.json({
