@@ -11,6 +11,8 @@ import MovieDetailsPage from './pages/MovieDetailsPage'
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
+import VerifyEmailPage from './pages/auth/VerifyEmailPage'
+import ResetPasswordPage from './pages/auth/ResetPasswordPage'
 
 import UnauthorizedPage from './pages/UnauthorizedPage'
 import NotFoundPage from './pages/NotFoundPage'
@@ -64,6 +66,8 @@ function App() {
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
         <Route path="forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="verify-email" element={<VerifyEmailPage />} />
+        <Route path="reset-password" element={<ResetPasswordPage />} />
 
         {/* Protected user routes */}
         <Route path="bookings" element={

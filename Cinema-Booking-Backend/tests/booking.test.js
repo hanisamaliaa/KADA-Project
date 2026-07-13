@@ -2,6 +2,8 @@ const request = require("supertest");
 const app = require("../src/app");
 const Movie = require("../src/models/Movie");
 const Showtime = require("../src/models/Showtime");
+const Cinema = require("../src/models/Cinema");
+const Hall = require("../src/models/Hall");
 const db = require("./helpers/db");
 
 beforeAll(async () => {
@@ -21,14 +23,17 @@ const makeShowtimes = async () => {
   const future = new Date(Date.now() + 24 * 60 * 60 * 1000);
   const movie = await Movie.create({
     title: "T",
-    genre: "Action",
+    genre: ["Action"],
     duration: 120,
     rating: "PG-13",
     poster: "p.jpg",
     description: "d",
   });
-  const st1 = await Showtime.create({ movieId: movie._id, date: future, time: "13:00", studio: "1", price: 50 });
-  const st2 = await Showtime.create({ movieId: movie._id, date: future, time: "16:00", studio: "1", price: 50 });
+  const cinema = await Cinema.create({ name: "Test Cinema", city: "Testville" });
+  const hall = await Hall.create({ cinema: cinema._id, name: "Studio 1", rows: 8, columns: 10, totalSeats: 80 });
+  const base = { movieId: movie._id, cinema: cinema._id, hall: hall._id, studio: hall.name, date: future };
+  const st1 = await Showtime.create({ ...base, time: "13:00", endTime: "15:00", price: 50 });
+  const st2 = await Showtime.create({ ...base, time: "16:00", endTime: "18:00", price: 50 });
   return { st1, st2 };
 };
 

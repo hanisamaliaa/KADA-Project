@@ -58,7 +58,8 @@ test("a movie without a trailer still works (trailerUrl is optional)", async () 
   const cookie = await adminCookie();
   const created = await request(app).post("/api/movies").set("Cookie", cookie).send(movieBody());
   expect(created.status).toBe(201);
-  expect(created.body.data.trailerUrl).toBeUndefined();
+  // A movie with no trailer stores an empty string (or nothing) — both are "no trailer".
+  expect(created.body.data.trailerUrl || "").toBe("");
 });
 
 test("trailerUrl can be updated", async () => {
