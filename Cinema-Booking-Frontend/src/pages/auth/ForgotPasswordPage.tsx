@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
+import { authService } from '@/services/authService'
 import { Film, Loader2, ArrowLeft, CheckCircle, Mail } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -26,6 +27,7 @@ const fadeUp = {
 export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
+  const navigate = useNavigate()
 
   const {
     register,
@@ -36,10 +38,11 @@ export default function ForgotPasswordPage() {
   const onSubmit = async (data: ForgotPasswordForm) => {
     setLoading(true)
     try {
-      // Mock: no backend call
-      await new Promise((resolve) => setTimeout(resolve, 1200))
-      toast.success('Reset link sent to your email')
-      setSent(true)
+      const res = await authService.forgotPassword(data.email)
+      // Backend always returns 200 (no account enumeration). In dev it echoes the code.
+      if (res?.devCode) toast.success(`Dev code: ${res.devCode}`)
+      toast.success('If that email is registered, a reset code has been sent.')
+      navigate(`/reset-password?email=${encodeURIComponent(data.email)}`)
     } catch {
       toast.error('Something went wrong. Please try again.')
     } finally {

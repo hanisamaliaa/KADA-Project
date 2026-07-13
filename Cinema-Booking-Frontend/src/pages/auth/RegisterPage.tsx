@@ -46,12 +46,13 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterForm) => {
     setLoading(true)
     try {
-      const { error } = await signUp(data.email, data.password, data.fullName)
+      const { error, data: res } = await signUp(data.email, data.password, data.fullName)
       if (error) {
         toast.error(error.message || 'Registration failed')
       } else {
-        toast.success('Registration successful! Please check your email to verify your account.')
-        navigate('/login')
+        if (res?.devCode) toast.success(`Dev code: ${res.devCode}`)
+        toast.success('Account created! Enter the code we emailed to verify.')
+        navigate(`/verify-email?email=${encodeURIComponent(data.email)}`)
       }
     } catch (error) {
       toast.error('An error occurred. Please try again.')

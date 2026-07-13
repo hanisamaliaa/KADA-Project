@@ -2,16 +2,9 @@ const { verifyAccessToken } = require("../utils/tokens");
 
 const authenticate = (req, res, next) => {
   try {
-    // Support both cookie-based and Bearer token authentication
-    let token = req.cookies?.token;
-
-    if (!token) {
-      const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith("Bearer ")) {
-        token = authHeader.slice(7);
-      }
-    }
-
+    // Cookie-only auth for the browser SPA — the access token lives in an httpOnly
+    // cookie that JavaScript cannot read, so there is no Bearer-header fallback.
+    const token = req.cookies?.token;
     if (!token) {
       return res.status(401).json({ success: false, message: "Not authenticated" });
     }

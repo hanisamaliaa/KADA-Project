@@ -7,9 +7,10 @@ interface AuthContextType {
   isAdmin: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ error: any; data?: any }>;
   signOut: () => Promise<void>;
   adminSignIn: (username: string, password: string) => Promise<{ error: any }>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -62,12 +63,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = useCallback(async (email: string, password: string, fullName: string) => {
     try {
-      await authService.register(email, password, fullName);
-      return { error: null };
+      const data = await authService.register(email, password, fullName);
+      // NOTE: registration does NOT log the user in — they must verify their email first.
+      return { error: null, data };
     } catch (error: any) {
       const message = error.response?.data?.message || error.message || 'Registration failed';
       return { error: new Error(message) };
     }
+  }, []);
+
+  // Re-read the current user from the server (used after email verification, which
+  // sets the auth cookies).
+  const refreshUser = useCallback(async () => {
+    setUser(await authService.getCurrentUser());
   }, []);
 
   const signOut = useCallback(async () => {
@@ -85,6 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signUp,
     signOut,
     adminSignIn,
+    refreshUser,
   };
 
   return (
