@@ -2,16 +2,20 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const User = require("../models/User");
 const Movie = require("../models/Movie");
+const Cinema = require("../models/Cinema");
+const Hall = require("../models/Hall");
 const Showtime = require("../models/Showtime");
 const Booking = require("../models/Booking");
 
 // Populate the database with challenge-only data (§11.7):
-// 1 admin, 2 users, 5 movies, and showtimes across multiple movies.
+// 1 admin, 2 users, 5 movies, cinemas, halls, and showtimes across multiple movies.
 // Idempotent: clears the relevant collections first so it can be re-run.
 const seedData = async () => {
   await Promise.all([
     User.deleteMany({}),
     Movie.deleteMany({}),
+    Cinema.deleteMany({}),
+    Hall.deleteMany({}),
     Showtime.deleteMany({}),
     Booking.deleteMany({}),
   ]);
@@ -22,31 +26,13 @@ const seedData = async () => {
   ]);
 
   await User.create([
-    {
-      name: "Admin",
-      email: "admin@kada.com",
-      password: adminPass,
-      role: "admin",
-      isVerified: true,
-    },
-    {
-      name: "User One",
-      email: "user1@kada.com",
-      password: userPass,
-      role: "user",
-      isVerified: true,
-    },
-    {
-      name: "User Two",
-      email: "user2@kada.com",
-      password: userPass,
-      role: "user",
-      isVerified: true,
-    },
+    { name: "Admin", email: "admin@kada.com", password: adminPass, role: "admin", isVerified: true },
+    { name: "User One", email: "user1@kada.com", password: userPass, role: "user", isVerified: true },
+    { name: "User Two", email: "user2@kada.com", password: userPass, role: "user", isVerified: true },
   ]);
 
-  // trailerUrl is optional (YouTube link for the trailer preview). "Inside Out 2"
-  // is intentionally left without one to show the no-trailer case still works.
+  // trailerUrl is optional. "Inside Out 2" is intentionally left without one to show
+  // the no-trailer case still works.
   const movies = await Movie.create([
     {
       title: "Avengers: Endgame",
@@ -104,50 +90,49 @@ const seedData = async () => {
     },
   ]);
 
+  // Cinemas + halls (seat layout lives on the hall).
+  const cinemas = await Cinema.create([
+    { name: "CineLux Grand Indonesia", city: "Jakarta" },
+    { name: "CineLux Bandung", city: "Bandung" },
+  ]);
+
+  const halls = await Hall.create([
+    { cinema: cinemas[0]._id, name: "Studio 1", rows: 8, columns: 10, totalSeats: 80 },
+    { cinema: cinemas[0]._id, name: "Studio 2", rows: 6, columns: 8, totalSeats: 48 },
+    { cinema: cinemas[1]._id, name: "Studio 1", rows: 8, columns: 10, totalSeats: 80 },
+  ]);
+
   // Showtimes tomorrow so they are always bookable during evaluation.
   const day = new Date();
   day.setDate(day.getDate() + 1);
 
+  const st = (movieIdx, cinemaIdx, hallIdx, time, endTime, price) => ({
+    movieId: movies[movieIdx]._id,
+    cinema: cinemas[cinemaIdx]._id,
+    hall: halls[hallIdx]._id,
+    studio: halls[hallIdx].name, // required string, mirrors the hall name
+    date: day,
+    time,
+    endTime,
+    price,
+  });
+
   const showtimeDocs = [
-    {
-      movieId: movies[0]._id,
-      date: day,
-      time: "13:00",
-      studio: "Studio 1",
-      price: 50000,
-    },
-    {
-      movieId: movies[0]._id,
-      date: day,
-      time: "16:00",
-      studio: "Studio 1",
-      price: 55000,
-    },
-    {
-      movieId: movies[1]._id,
-      date: day,
-      time: "14:00",
-      studio: "Studio 2",
-      price: 60000,
-    },
-    {
-      movieId: movies[1]._id,
-      date: day,
-      time: "19:00",
-      studio: "Studio 2",
-      price: 65000,
-    },
-    {
-      movieId: movies[4]._id,
-      date: day,
-      time: "20:00",
-      studio: "Studio 3",
-      price: 70000,
-    },
+    st(0, 0, 0, "13:00", "16:00", 50000), // Avengers @ Grand Indonesia / Studio 1
+    st(0, 0, 0, "16:30", "19:30", 55000),
+    st(1, 0, 1, "14:00", "16:45", 60000), // Dune @ Grand Indonesia / Studio 2
+    st(1, 0, 1, "19:00", "21:45", 65000),
+    st(4, 1, 2, "20:00", "23:00", 70000), // The Batman @ Bandung / Studio 1
   ];
   await Showtime.create(showtimeDocs);
 
-  return { users: 3, movies: movies.length, showtimes: showtimeDocs.length };
+  return {
+    users: 3,
+    movies: movies.length,
+    cinemas: cinemas.length,
+    halls: halls.length,
+    showtimes: showtimeDocs.length,
+  };
 };
 
 module.exports = { seedData };

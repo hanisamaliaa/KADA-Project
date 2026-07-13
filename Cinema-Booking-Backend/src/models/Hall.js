@@ -36,11 +36,12 @@ const hallSchema = new mongoose.Schema(
 
 hallSchema.index({ cinema: 1, name: 1 }, { unique: true });
 
-hallSchema.pre("validate", function (next) {
+// Auto-compute totalSeats before validation. Uses the modern arity-0 sync hook
+// style (no `next` callback) — the callback style throws in this Mongoose version.
+hallSchema.pre("validate", function () {
   if (this.rows && this.columns) {
     this.totalSeats = this.rows * this.columns;
   }
-  next();
 });
 
 module.exports = mongoose.model("Hall", hallSchema);
