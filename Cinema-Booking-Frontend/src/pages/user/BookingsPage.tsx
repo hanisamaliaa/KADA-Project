@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Clock, MapPin, Eye, X } from 'lucide-react';
+import { Calendar, Clock, MapPin, Eye, Printer, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { IBooking } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -173,13 +173,26 @@ export default function BookingsPage() {
                       <span>View</span>
                     </Link>
                     {booking.status === 'confirmed' && (
-                      <button
-                        onClick={() => handleCancelBooking(booking._id)}
-                        className="btn btn-danger flex items-center space-x-2"
-                      >
-                        <X className="h-4 w-4" />
-                        <span>Cancel</span>
-                      </button>
+                      <>
+                        <Link
+                          to={`/bookings/${booking._id}`}
+                          className="btn btn-secondary flex items-center space-x-2 no-print"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            window.print();
+                          }}
+                        >
+                          <Printer className="h-4 w-4" />
+                          <span>Print</span>
+                        </Link>
+                        <button
+                          onClick={() => handleCancelBooking(booking._id)}
+                          className="btn btn-danger flex items-center space-x-2"
+                        >
+                          <X className="h-4 w-4" />
+                          <span>Cancel</span>
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>

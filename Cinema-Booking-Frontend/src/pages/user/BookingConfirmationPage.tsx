@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CalendarDays, CheckCircle, MapPin, QrCode, Ticket } from 'lucide-react';
+import { ArrowLeft, CalendarDays, CheckCircle, MapPin, Printer, QrCode, Ticket } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { IBooking } from '@/types';
 import LoadingSpinner from '@/components/LoadingSpinner';
@@ -63,6 +63,12 @@ export default function BookingConfirmationPage() {
       </header>
       
       <main className="mx-auto max-w-3xl px-4 py-12 text-center sm:px-6 lg:px-8">
+        {/* Print-only header */}
+        <div className="print-only hidden">
+          <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px', color: '#111' }}>CineLux Cinema Ticket</h1>
+          <p style={{ fontSize: '12px', color: '#666', marginBottom: '16px' }}>Please present this ticket at the cinema entrance</p>
+        </div>
+
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -106,12 +112,15 @@ export default function BookingConfirmationPage() {
                 </div>
                 <div className="my-5 border-t border-dashed border-white/[0.1]" />
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                  <div><p className="text-sm text-neutral-400">Cinema</p><p className="flex items-center gap-1 font-semibold text-white"><MapPin className="h-4 w-4 text-accent-500" /> Grand Indonesia</p></div>
+                  <div><p className="text-sm text-neutral-400">Cinema</p><p className="flex items-center gap-1 font-semibold text-white"><MapPin className="h-4 w-4 text-accent-500" /> {booking.showtime?.cinema?.name || 'N/A'}</p></div>
+                  <div><p className="text-sm text-neutral-400">City</p><p className="font-semibold text-white">{booking.showtime?.cinema?.city || 'N/A'}</p></div>
                   <div><p className="text-sm text-neutral-400">Hall</p><p className="font-semibold text-white">{booking.showtime.hall.hall_name}</p></div>
                   <div><p className="text-sm text-neutral-400">Date</p><p className="flex items-center gap-1 font-semibold text-white"><CalendarDays className="h-4 w-4 text-accent-500" /> {new Date(booking.showtime.show_date).toLocaleDateString()}</p></div>
-                  <div><p className="text-sm text-neutral-400">Time</p><p className="font-semibold text-white">{booking.showtime.start_time}</p></div>
+                  <div><p className="text-sm text-neutral-400">Time</p><p className="font-semibold text-white">{booking.showtime.start_time}{booking.showtime.end_time ? ` – ${booking.showtime.end_time}` : ''}</p></div>
                   <div><p className="text-sm text-neutral-400">Seats</p><p className="font-semibold text-white">{booking.selected_seats.join(', ')}</p></div>
+                  <div><p className="text-sm text-neutral-400">Price</p><p className="font-semibold text-white">IDR {booking.showtime.ticket_price.toLocaleString()} x {booking.total_seats}</p></div>
                   <div><p className="text-sm text-neutral-400">Booking ID</p><p className="font-semibold text-white">#{booking._id.slice(-6).toUpperCase()}</p></div>
+                  <div><p className="text-sm text-neutral-400">Booking Date</p><p className="font-semibold text-white">{new Date(booking.booking_date).toLocaleDateString()}</p></div>
                 </div>
                 <div className="mt-6 flex items-center justify-between rounded-xl bg-white/[0.03] border border-white/[0.06] p-4">
                   <span className="text-neutral-400">Total Paid</span>
@@ -123,12 +132,21 @@ export default function BookingConfirmationPage() {
         )}
         
         <motion.div 
-          className="mt-8 flex justify-center"
+          className="mt-8 flex flex-col sm:flex-row justify-center gap-3"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
         >
-            <Link to="/my-bookings" className="btn btn-primary w-full max-w-xs text-lg">
+            {booking && (
+              <button
+                onClick={() => window.print()}
+                className="btn btn-secondary w-full max-w-xs text-lg no-print"
+              >
+                <Printer className="h-5 w-5" />
+                Print Ticket
+              </button>
+            )}
+            <Link to="/my-bookings" className="btn btn-primary w-full max-w-xs text-lg no-print">
                 <QrCode className="h-5 w-5" />
                 View My Bookings
             </Link>

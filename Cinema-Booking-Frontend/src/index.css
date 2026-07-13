@@ -662,3 +662,156 @@ a, button, input, select, textarea {
 .theme-light ::-webkit-scrollbar-thumb:hover {
   background-color: #a1a1aa;
 }
+
+/* ============================================================
+   PRINT STYLES
+   ============================================================ */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body {
+    background: white !important;
+    color: #000 !important;
+  }
+
+  /* Hide non-ticket elements */
+  .no-print,
+  header,
+  nav,
+  footer,
+  .fixed,
+  [class*="sticky"],
+  .vignette,
+  .film-grain,
+  .light-sweep,
+  .hero-video-container,
+  .hero-iframe-wrapper,
+  .hero-fallback,
+  .scroll-indicator,
+  button:not(.print-only),
+  .btn:not(.print-only) {
+    display: none !important;
+  }
+
+  /* Reset dark backgrounds for print */
+  .bg-dark-950,
+  .bg-dark-950\/80,
+  .bg-dark-950\/95,
+  .bg-dark-900,
+  .bg-dark-900\/95,
+  .bg-dark-800,
+  .bg-white\/\[0\.03\],
+  .bg-white\/\[0\.04\],
+  .bg-white\/\[0\.05\],
+  .bg-white\/\[0\.06\],
+  .bg-white\/\[0\.08\] {
+    background: white !important;
+  }
+
+  .glass-panel,
+  .cinema-panel,
+  .card,
+  .movie-card {
+    background: white !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: none !important;
+  }
+
+  /* Text colors for print */
+  .text-white,
+  .text-neutral-100,
+  .text-neutral-200,
+  .text-neutral-300,
+  .text-neutral-400 {
+    color: #1f2937 !important;
+  }
+
+  .text-neutral-500,
+  .text-neutral-600 {
+    color: #6b7280 !important;
+  }
+
+  .text-primary-400,
+  .text-primary-300,
+  .text-accent-500,
+  .text-accent-400,
+  .text-accent-300,
+  .text-emerald-500,
+  .text-emerald-400,
+  .text-emerald-300 {
+    color: #111827 !important;
+  }
+
+  .text-gradient-premium,
+  .text-gradient {
+    color: #111827 !important;
+    background: none !important;
+  }
+
+  /* Badge styles for print */
+  .cinema-badge,
+  .info-chip,
+  .status-badge {
+    background: #f3f4f6 !important;
+    border: 1px solid #d1d5db !important;
+    color: #374151 !important;
+  }
+
+  .status-confirmed {
+    background: #d1fae5 !important;
+    border-color: #6ee7b7 !important;
+    color: #065f46 !important;
+  }
+
+  .status-cancelled {
+    background: #fee2e2 !important;
+    border-color: #fca5a5 !important;
+    color: #991b1b !important;
+  }
+
+  /* Links */
+  a {
+    color: #1f2937 !important;
+    text-decoration: none !important;
+  }
+
+  /* Ensure images print */
+  img {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Page margins */
+  @page {
+    margin: 1.5cm;
+    size: A4;
+  }
+
+  /* Show print-only elements */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Main content area */
+  main {
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .min-h-screen {
+    min-height: auto !important;
+    background: white !important;
+    padding: 0 !important;
+  }
+
+  /* Remove shadows and glows */
+  [class*="shadow-"],
+  [class*="blur-"] {
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+}

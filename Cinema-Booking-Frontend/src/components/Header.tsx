@@ -1,7 +1,8 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { LogOut, MapPin, Settings, Ticket, User, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useState, useEffect } from 'react';
+import { useCinema } from '@/contexts/CinemaContext';
+import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -9,11 +10,14 @@ import logo from "../assets/logo.png";
 
 export default function Header() {
   const { user, isAdmin, signOut } = useAuth();
+  const { cinemas, selectedCinemaId, selectedCinema, setSelectedCinemaId, loading: cinemasLoading } = useCinema();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [locationMenuOpen, setLocationMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const locationRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -21,6 +25,16 @@ export default function Header() {
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (locationRef.current && !locationRef.current.contains(e.target as Node)) {
+        setLocationMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const handleSignOut = async () => {
@@ -102,11 +116,75 @@ export default function Header() {
 
           {/* User Menu */}
           <div className="flex items-center gap-3">
-            <button className="hidden lg:inline-flex items-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.05] px-4 py-2.5 text-xs font-medium text-neutral-300 hover:border-white/[0.15] hover:bg-white/[0.08] hover:text-white transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 backdrop-blur-xl group">
-              <MapPin className="h-3.5 w-3.5 text-primary-400 group-hover:text-primary-300 transition-colors" />
-              Jakarta
-              <ChevronDown className="h-3 w-3 text-neutral-500 group-hover:text-neutral-400 transition-colors" />
-            </button>
+            {/* Location Dropdown */}
+            <div className="relative" ref={locationRef}>
+              <button
+                onClick={() => setLocationMenuOpen(!locationMenuOpen)}
+                className="hidden lg:inline-flex items-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.05] px-4 py-2.5 text-xs font-medium text-neutral-300 hover:border-white/[0.15] hover:bg-white/[0.08] hover:text-white transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 backdrop-blur-xl group"
+              >
+                <MapPin className="h-3.5 w-3.5 text-primary-400 group-hover:text-primary-300 transition-colors" />
+                {selectedCinema ? `${selectedCinema.name} — ${selectedCinema.city}` : 'All Cinemas'}
+                <ChevronDown className={clsx("h-3 w-3 text-neutral-500 group-hover:text-neutral-400 transition-transform duration-200", locationMenuOpen && "rotate-180")} />
+              </button>
+
+              <AnimatePresence>
+                {locationMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
+                    className="absolute right-0 mt-3 w-72 rounded-2xl border border-white/[0.1] bg-dark-900/95 shadow-premium backdrop-blur-3xl py-2 overflow-hidden z-50"
+                  >
+                    <div className="px-4 py-3 border-b border-white/[0.06]">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Select Location</p>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto py-1">
+                      <button
+                        onClick={() => {
+                          setSelectedCinemaId('');
+                          setLocationMenuOpen(false);
+                        }}
+                        className={clsx(
+                          "flex items-center gap-3 w-full px-4 py-3 text-sm transition-all duration-200",
+                          !selectedCinemaId
+                            ? 'text-white bg-white/[0.08]'
+                            : 'text-neutral-300 hover:bg-white/[0.06] hover:text-white'
+                        )}
+                      >
+                        <MapPin className="h-4 w-4 text-primary-400 shrink-0" />
+                        <span className="font-medium">All Cinemas</span>
+                      </button>
+                      {cinemasLoading ? (
+                        <div className="px-4 py-3 text-xs text-neutral-500">Loading...</div>
+                      ) : (
+                        cinemas.map((cinema) => (
+                          <button
+                            key={cinema._id}
+                            onClick={() => {
+                              setSelectedCinemaId(cinema._id);
+                              setLocationMenuOpen(false);
+                            }}
+                            className={clsx(
+                              "flex items-center gap-3 w-full px-4 py-3 text-sm transition-all duration-200",
+                              selectedCinemaId === cinema._id
+                                ? 'text-white bg-white/[0.08]'
+                                : 'text-neutral-300 hover:bg-white/[0.06] hover:text-white'
+                            )}
+                          >
+                            <MapPin className="h-4 w-4 text-primary-400 shrink-0" />
+                            <div className="flex flex-col items-start">
+                              <span className="font-medium">{cinema.name}</span>
+                              <span className="text-xs text-neutral-500">{cinema.city}</span>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
             {user ? (
               <div className="flex items-center gap-2">
