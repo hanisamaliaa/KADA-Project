@@ -53,7 +53,12 @@ const login = asyncHandler(async (req, res) => {
   const user = await authService.login(req.body);
   const { accessToken, refreshToken } = await authService.issueTokens(user);
   setAuthCookies(res, accessToken, refreshToken);
-  res.status(200).json({ success: true, message: "Login successful", data: publicUser(user) });
+  res.status(200).json({
+    success: true,
+    message: "Login successful",
+    token: accessToken,
+    data: publicUser(user),
+  });
 });
 
 const me = asyncHandler(async (req, res) => {

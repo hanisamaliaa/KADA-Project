@@ -2,7 +2,16 @@ const { verifyAccessToken } = require("../utils/tokens");
 
 const authenticate = (req, res, next) => {
   try {
-    const token = req.cookies?.token;
+    // Support both cookie-based and Bearer token authentication
+    let token = req.cookies?.token;
+
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.slice(7);
+      }
+    }
+
     if (!token) {
       return res.status(401).json({ success: false, message: "Not authenticated" });
     }

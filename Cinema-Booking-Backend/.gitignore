@@ -19,3 +19,7 @@ coverage/
 Thumbs.db
 .vscode/
 .idea/
+
+# Uploaded files (generated at runtime)
+uploads/posters/*
+!uploads/posters/.gitkeep
