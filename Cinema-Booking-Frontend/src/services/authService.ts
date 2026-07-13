@@ -39,6 +39,34 @@ export const authService = {
       password,
       confirmPassword: password,
     });
+    return res.data; // { success, message, data, devCode? }
+  },
+
+  // Verifying the email also logs the user in (backend sets the auth cookies).
+  async verifyEmail(email: string, code: string) {
+    const res = await api.post('/auth/verify-email', { email, code });
+    const user = mapUser(res.data.data);
+    localStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(user));
+    return user;
+  },
+
+  async resendVerification(email: string) {
+    const res = await api.post('/auth/resend-verification', { email });
+    return res.data; // may include devCode in non-production
+  },
+
+  async forgotPassword(email: string) {
+    const res = await api.post('/auth/forgot-password', { email });
+    return res.data; // may include devCode in non-production
+  },
+
+  async resetPassword(email: string, code: string, newPassword: string, confirmPassword: string) {
+    const res = await api.post('/auth/reset-password', {
+      email,
+      code,
+      newPassword,
+      confirmPassword,
+    });
     return res.data;
   },
 

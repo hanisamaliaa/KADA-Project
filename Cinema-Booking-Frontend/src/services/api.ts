@@ -30,7 +30,15 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Never try to "refresh + retry" the auth endpoints themselves — a wrong-password
+    // login (401) must surface its error, not trigger a refresh + redirect loop.
+    const url: string = originalRequest?.url || '';
+    const isAuthCall =
+      url.includes('/auth/login') ||
+      url.includes('/auth/refresh') ||
+      url.includes('/auth/logout');
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthCall) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
