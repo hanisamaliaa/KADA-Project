@@ -49,6 +49,11 @@ export default {
           900: '#171717',
           950: '#0a0a0a',
         },
+        cinematic: {
+          gold: '#D4AF37',
+          copper: '#B87333',
+          bronze: '#CD7F32',
+        },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
@@ -68,6 +73,12 @@ export default {
         'glow-pulse': 'glowPulse 2s ease-in-out infinite',
         'slide-in-right': 'slideInRight 0.5s cubic-bezier(.22,.61,.36,1)',
         'slide-in-left': 'slideInLeft 0.5s cubic-bezier(.22,.61,.36,1)',
+        'ken-burns': 'kenBurns 20s ease-in-out infinite alternate',
+        'light-sweep': 'lightSweep 3s ease-in-out infinite',
+        'parallax-float': 'parallaxFloat 6s ease-in-out infinite',
+        'cinematic-glow': 'cinematicGlow 4s ease-in-out infinite',
+        'gradient-shift': 'gradientShift 8s ease infinite',
+        'video-zoom': 'videoZoom 30s ease-in-out infinite alternate',
       },
       keyframes: {
         fadeIn: {
@@ -118,17 +129,47 @@ export default {
           '0%': { transform: 'translateX(-20px)', opacity: '0' },
           '100%': { transform: 'translateX(0)', opacity: '1' },
         },
+        kenBurns: {
+          '0%': { transform: 'scale(1) translate(0, 0)' },
+          '100%': { transform: 'scale(1.1) translate(-1%, -1%)' },
+        },
+        lightSweep: {
+          '0%': { transform: 'translateX(-100%) skewX(-15deg)' },
+          '100%': { transform: 'translateX(200%) skewX(-15deg)' },
+        },
+        parallaxFloat: {
+          '0%, 100%': { transform: 'translateY(0) translateX(0)' },
+          '25%': { transform: 'translateY(-5px) translateX(2px)' },
+          '50%': { transform: 'translateY(-10px) translateX(0)' },
+          '75%': { transform: 'translateY(-5px) translateX(-2px)' },
+        },
+        cinematicGlow: {
+          '0%, 100%': { boxShadow: '0 0 30px rgba(212, 175, 55, 0.1), 0 0 60px rgba(225, 29, 99, 0.05)' },
+          '50%': { boxShadow: '0 0 40px rgba(212, 175, 55, 0.2), 0 0 80px rgba(225, 29, 99, 0.1)' },
+        },
+        gradientShift: {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+        },
+        videoZoom: {
+          '0%': { transform: 'scale(1)' },
+          '100%': { transform: 'scale(1.15)' },
+        },
       },
       boxShadow: {
         'glow': '0 0 20px rgba(225, 29, 99, 0.15)',
         'glow-lg': '0 0 40px rgba(225, 29, 99, 0.25)',
         'glow-accent': '0 0 20px rgba(249, 115, 22, 0.15)',
+        'glow-gold': '0 0 30px rgba(212, 175, 55, 0.2)',
         'card': '0 2px 8px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.15)',
         'card-hover': '0 8px 24px rgba(0,0,0,0.4), 0 16px 48px rgba(0,0,0,0.2)',
         'cinema': '0 4px 16px rgba(0,0,0,0.4), 0 12px 40px rgba(0,0,0,0.3)',
         'premium': '0 8px 32px rgba(0,0,0,0.5), 0 24px 64px rgba(0,0,0,0.3)',
         'poster': '0 16px 48px rgba(0,0,0,0.6), 0 32px 80px rgba(0,0,0,0.3)',
+        'poster-hover': '0 20px 60px rgba(0,0,0,0.7), 0 40px 100px rgba(0,0,0,0.4), 0 0 40px rgba(225, 29, 99, 0.15)',
         'inner-glow': 'inset 0 1px 0 rgba(255,255,255,0.05)',
+        'glass': '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
+        'glass-hover': '0 12px 48px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)',
       },
       borderRadius: {
         'xl': '0.875rem',
@@ -138,11 +179,17 @@ export default {
       },
       backdropBlur: {
         'xs': '2px',
+        '3xl': '64px',
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
         'gradient-premium': 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 100%)',
+        'gradient-cinematic': 'linear-gradient(135deg, #FF2D75 0%, #FF7A18 100%)',
+        'gradient-gold': 'linear-gradient(135deg, #D4AF37 0%, #B87333 100%)',
+      },
+      backgroundSize: {
+        '300%': '300% 300%',
       },
     },
   },

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Search, Filter, SlidersHorizontal } from 'lucide-react';
+import { Search, Filter, SlidersHorizontal, ChevronRight, Film } from 'lucide-react';
 import { IMovie } from '@/types';
 import MovieCard from '@/components/MovieCard';
 import { MovieCardSkeleton } from '@/components/LoadingSpinner';
@@ -78,15 +78,15 @@ export default function MoviesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen py-10">
+      <div className="min-h-screen py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-10 space-y-3">
-            <div className="skeleton h-4 w-28 rounded-full" />
-            <div className="skeleton h-10 w-64 rounded-xl" />
-            <div className="skeleton h-4 w-80 rounded-lg" />
+          <div className="mb-12 space-y-4">
+            <div className="skeleton h-5 w-32 rounded-full" />
+            <div className="skeleton h-12 w-72 rounded-xl" />
+            <div className="skeleton h-5 w-96 rounded-lg" />
           </div>
-          <div className="skeleton h-16 rounded-2xl mb-8" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="skeleton h-20 rounded-2xl mb-10" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {Array.from({ length: 8 }).map((_, i) => (
               <MovieCardSkeleton key={i} />
             ))}
@@ -97,48 +97,48 @@ export default function MoviesPage() {
   }
 
   return (
-    <div className="min-h-screen py-10">
+    <div className="min-h-screen py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-10"
+          transition={{ duration: 0.6 }}
+          className="mb-12"
         >
-          <p className="section-eyebrow mb-3">Browse tickets</p>
-          <h1 className="text-3xl md:text-4xl font-display font-bold text-white tracking-tight mb-4">
+          <p className="section-eyebrow mb-4">Browse tickets</p>
+          <h1 className="text-4xl md:text-5xl font-display font-bold text-white tracking-tight mb-5">
             Movies & Showtimes
           </h1>
-          <p className="text-neutral-400 text-sm max-w-xl leading-relaxed">
+          <p className="text-neutral-400 text-base max-w-xl leading-relaxed">
             Filter by status, genre, and rating to find your next cinema plan.
           </p>
         </motion.div>
 
         {/* Filters */}
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="glass-panel mb-10 p-5"
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="glass-panel mb-12 p-6"
         >
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="relative group">
-              <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-neutral-500 h-4 w-4 group-focus-within:text-primary-400 transition-colors duration-300" />
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-neutral-500 h-4 w-4 group-focus-within:text-primary-400 transition-colors duration-300" />
               <input
                 type="text"
                 placeholder="Search movies..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="input pl-10 py-2.5"
+                className="input pl-12 py-3.5"
               />
             </div>
             <div className="relative group">
-              <Filter className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-neutral-500 h-4 w-4 group-focus-within:text-primary-400 transition-colors duration-300" />
+              <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 text-neutral-500 h-4 w-4 group-focus-within:text-primary-400 transition-colors duration-300" />
               <select
                 value={selectedGenre}
                 onChange={(e) => setSelectedGenre(e.target.value)}
-                className="input pl-10 pr-8 py-2.5 appearance-none cursor-pointer"
+                className="input pl-12 pr-10 py-3.5 appearance-none cursor-pointer"
               >
                 <option value="">All Genres</option>
                 {genres.map((genre) => (
@@ -149,7 +149,7 @@ export default function MoviesPage() {
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value as 'all' | 'now_showing' | 'coming_soon')}
-              className="input py-2.5 cursor-pointer"
+              className="input py-3.5 cursor-pointer"
             >
               <option value="all">All Status</option>
               <option value="now_showing">Now Showing</option>
@@ -158,7 +158,7 @@ export default function MoviesPage() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'title' | 'release_date' | 'rating')}
-              className="input py-2.5 cursor-pointer"
+              className="input py-3.5 cursor-pointer"
             >
               <option value="title">Sort by Title</option>
               <option value="release_date">Sort by Release Date</option>
@@ -168,23 +168,23 @@ export default function MoviesPage() {
         </motion.div>
 
         {error && (
-          <div className="card p-4 mb-8 text-red-400 border-red-500/20 bg-red-500/5">{error}</div>
+          <div className="card p-5 mb-10 text-red-400 border-red-500/20 bg-red-500/5">{error}</div>
         )}
 
         {/* Movies Grid */}
         {filteredMovies.length > 0 ? (
           <>
-            <div className="mb-6 flex items-center justify-between text-xs text-neutral-500">
+            <div className="mb-8 flex items-center justify-between text-sm text-neutral-500">
               <span>{filteredMovies.length} movies found</span>
               <span>{selectedStatus === 'all' ? 'All titles' : selectedStatus === 'now_showing' ? 'Now playing' : 'Coming soon'}</span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
               {paginatedMovies.map((movie, index) => (
                 <motion.div
                   key={movie._id}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 24 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: index * 0.05 }}
+                  transition={{ duration: 0.5, delay: index * 0.05 }}
                 >
                   <MovieCard movie={movie} />
                 </motion.div>
@@ -193,7 +193,7 @@ export default function MoviesPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-12">
+              <div className="flex items-center justify-center gap-3 mt-14">
                 <button
                   className="btn btn-secondary btn-sm"
                   disabled={currentPage === 1}
@@ -201,15 +201,15 @@ export default function MoviesPage() {
                 >
                   Previous
                 </button>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2">
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                     <button
                       key={page}
                       onClick={() => setCurrentPage(page)}
-                      className={`w-9 h-9 rounded-xl text-xs font-semibold transition-all duration-300 ${
+                      className={`w-10 h-10 rounded-xl text-xs font-semibold transition-all duration-300 ${
                         currentPage === page
-                          ? 'bg-gradient-to-b from-primary-500 to-primary-600 text-white shadow-md shadow-primary-950/30'
-                          : 'bg-white/[0.04] text-neutral-400 hover:bg-white/[0.07] hover:text-white border border-white/[0.06]'
+                          ? 'bg-gradient-to-r from-[#FF2D75] to-[#FF7A18] text-white shadow-lg shadow-primary-950/30'
+                          : 'bg-white/[0.05] text-neutral-400 hover:bg-white/[0.08] hover:text-white border border-white/[0.08]'
                       }`}
                     >
                       {page}
@@ -227,17 +227,17 @@ export default function MoviesPage() {
             )}
           </>
         ) : (
-          <div className="text-center py-20">
-            <div className="w-16 h-16 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mx-auto mb-4">
-              <SlidersHorizontal className="h-8 w-8 text-neutral-600" />
+          <div className="text-center py-24">
+            <div className="w-20 h-20 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center mx-auto mb-6">
+              <Film className="h-10 w-10 text-neutral-600" />
             </div>
-            <p className="text-neutral-400 text-sm mb-1">
+            <p className="text-neutral-400 text-base mb-2">
               {searchTerm || selectedGenre
                 ? 'No movies found matching your criteria.'
                 : 'No movies currently available.'
               }
             </p>
-            <p className="text-neutral-500 text-xs">Try adjusting your filters</p>
+            <p className="text-neutral-500 text-sm">Try adjusting your filters</p>
           </div>
         )}
       </div>
