@@ -5,6 +5,8 @@ const authenticate = require("../middlewares/authenticate");
 const posterUpload = require("../middlewares/posterUpload");
 
 const {
+  getGenres,
+  createGenre,
   getMovies,
   getMovieDetail,
   createMovie,
@@ -12,6 +14,9 @@ const {
   deleteMovie,
 } = require("../controllers/movieController");
 
+router.get("/genres", getGenres);
+
+router.post("/genres", authenticate, requireAdmin, createGenre);
 
 router.get("/", getMovies);
 

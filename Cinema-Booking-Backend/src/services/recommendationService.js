@@ -9,8 +9,14 @@ const getRecommendations = async (movieId) => {
     throw new AppError("Movie not found", 404);
   }
 
+  const movieGenres = Array.isArray(movie.genre)
+    ? movie.genre
+    : movie.genre
+      ? [movie.genre]
+      : [];
+
   const genreMatches = await Movie.find({
-    genre: movie.genre,
+    genre: { $in: movieGenres },
     _id: { $ne: movie._id },
   });
 

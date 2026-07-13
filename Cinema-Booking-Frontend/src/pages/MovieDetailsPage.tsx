@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Calendar, Clock, ExternalLink, Globe, MapPin, Play, Star, Ticket, Users } from 'lucide-react';
+import { Calendar, Clock, ExternalLink, Globe, MapPin, Play, Ticket, Users } from 'lucide-react';
 import { IMovie, IShowtime } from '@/types';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorMessage from '@/components/ErrorMessage';
@@ -35,8 +35,16 @@ export default function MovieDetailsPage() {
       ]);
       setMovie(movieData);
       setShowtimes(showtimeData);
-      if (showtimeData.length > 0) {
-        setSelectedDate(showtimeData[0].show_date.split('T')[0]);
+
+      const futureShowtimes = showtimeData.filter(st => {
+        const showDate = new Date(st.show_date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return showDate >= today;
+      });
+
+      if (futureShowtimes.length > 0) {
+        setSelectedDate(futureShowtimes[0].show_date.split('T')[0]);
       }
     } catch (error) {
       console.error('Error fetching movie:', error);
@@ -46,8 +54,21 @@ export default function MovieDetailsPage() {
     }
   };
 
-  const availableDates = [...new Set(showtimes.map((showtime) => showtime.show_date.split('T')[0]))];
-  const visibleShowtimes = showtimes.filter((showtime) => showtime.show_date.startsWith(selectedDate));
+  const availableDates = [...new Set(
+    showtimes
+      .filter(st => {
+        const showDate = new Date(st.show_date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return showDate >= today;
+      })
+      .map((showtime) => showtime.show_date.split('T')[0])
+  )];
+
+  const visibleShowtimes = showtimes.filter((showtime) => {
+    const isFuture = new Date(showtime.show_date) >= new Date(new Date().setHours(0, 0, 0, 0));
+    return showtime.show_date.startsWith(selectedDate) && isFuture;
+  });
 
   if (loading) {
     return (
@@ -135,8 +156,7 @@ export default function MovieDetailsPage() {
                   {movie.classification && <span className="cinema-badge">{movie.classification}</span>}
                   {movie.rating && (
                     <div className="cinema-badge bg-amber-500/15 text-amber-300 border-amber-500/25">
-                      <Star className="h-3 w-3 fill-current" />
-                      {movie.rating.toFixed(1)}
+                      {movie.rating}
                     </div>
                   )}
                 </div>
@@ -245,10 +265,13 @@ export default function MovieDetailsPage() {
                 <div className="glass-panel sticky top-24 p-6">
                   <p className="section-eyebrow mb-3">Book now</p>
                   <h2 className="text-xl font-display font-bold text-white mb-5">Select Showtime</h2>
-                  <div className="mb-6 flex items-center gap-2.5 rounded-xl bg-white/[0.03] px-4 py-3 text-xs text-neutral-300 border border-white/[0.06]">
-                    <MapPin className="h-3.5 w-3.5 text-primary-400" />
-                    CineLux Grand Indonesia
-                  </div>
+
+                  {selectedShowtime?.cinema && (
+                    <div className="mb-6 flex items-center gap-2.5 rounded-xl bg-white/[0.03] px-4 py-3 text-xs text-neutral-300 border border-white/[0.06]">
+                      <MapPin className="h-3.5 w-3.5 text-primary-400" />
+                      {selectedShowtime.cinema.name} — {selectedShowtime.cinema.city}
+                    </div>
+                  )}
 
                   {/* Date selector */}
                   <div className="mb-6 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
@@ -294,8 +317,13 @@ export default function MovieDetailsPage() {
                           </p>
                         </div>
                         <p className="text-xs text-neutral-500 mt-1.5">
-                          {showtime.hall.hall_name} &middot; {showtime.end_time} finish
+                          {showtime.hall?.hall_name || 'TBA'} &middot; {showtime.end_time} finish
                         </p>
+                        {showtime.cinema && (
+                          <p className="text-xs text-neutral-500 mt-0.5">
+                            {showtime.cinema.name} — {showtime.cinema.city}
+                          </p>
+                        )}
                       </button>
                     ))}
                   </div>

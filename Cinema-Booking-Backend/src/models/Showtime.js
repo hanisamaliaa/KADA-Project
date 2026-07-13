@@ -8,6 +8,18 @@ const showtimeSchema = new mongoose.Schema(
       required: true,
     },
 
+    cinema: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Cinema",
+      required: [true, "Cinema is required"],
+    },
+
+    hall: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Hall",
+      required: [true, "Hall is required"],
+    },
+
     date: {
       type: Date,
       required: true,
@@ -16,6 +28,11 @@ const showtimeSchema = new mongoose.Schema(
     time: {
       type: String,
       required: true,
+    },
+
+    endTime: {
+      type: String,
+      required: [true, "End time is required"],
     },
 
     studio: {
@@ -34,7 +51,7 @@ const showtimeSchema = new mongoose.Schema(
       default: [],
     },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
 module.exports = mongoose.model("Showtime", showtimeSchema);

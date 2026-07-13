@@ -10,13 +10,37 @@ import { movieService } from '@/services/movieService';
 import { extractYouTubeVideoId, getYouTubeEmbedUrl } from '@/lib/youtube';
 import type { IMovie } from '@/types';
 
+const FIXED_GENRES = [
+  "Action",
+  "Adventure",
+  "Animation",
+  "Biography",
+  "Comedy",
+  "Crime",
+  "Documentary",
+  "Drama",
+  "Family",
+  "Fantasy",
+  "History",
+  "Horror",
+  "Music",
+  "Musical",
+  "Mystery",
+  "Romance",
+  "Sci-Fi",
+  "Sport",
+  "Thriller",
+  "War",
+  "Western",
+];
+
 interface MovieFormInputs {
   title: string;
   description: string;
-  genre: string;
   duration: number;
   rating: string;
   trailerUrl: string;
+  director: string;
 }
 
 interface MovieFormProps {
@@ -55,7 +79,15 @@ const MovieForm: React.FC<MovieFormProps> = ({ movieToEdit, onClose, onSave }) =
   const [posterError, setPosterError] = useState<string>('');
   const [isDragging, setIsDragging] = useState(false);
   const [trailerPreviewUrl, setTrailerPreviewUrl] = useState<string>('');
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [genreError, setGenreError] = useState('');
+  const [genreSearch, setGenreSearch] = useState('');
+  const [showGenreDropdown, setShowGenreDropdown] = useState(false);
+  const [castInput, setCastInput] = useState('');
+  const [castList, setCastList] = useState<string[]>([]);
+  const [castError, setCastError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const genreDropdownRef = useRef<HTMLDivElement>(null);
 
   const {
     register,
@@ -67,32 +99,42 @@ const MovieForm: React.FC<MovieFormProps> = ({ movieToEdit, onClose, onSave }) =
     defaultValues: {
       title: '',
       description: '',
-      genre: '',
       duration: 0,
       rating: '',
       trailerUrl: '',
+      director: '',
     },
   });
 
   const watchTrailerUrl = watch('trailerUrl');
 
-  // Initialize form with edit data
   useEffect(() => {
     if (movieToEdit) {
-      // Pre-fill all form fields with existing movie data
       setValue('title', movieToEdit.title || '');
       setValue('description', movieToEdit.description || '');
-      setValue('genre', movieToEdit.genre || '');
       setValue('duration', movieToEdit.duration || 0);
       setValue('rating', movieToEdit.rating ? String(movieToEdit.rating) : '');
       setValue('trailerUrl', movieToEdit.trailer_url || '');
+      setValue('director', movieToEdit.director || '');
 
-      // Show existing poster as preview
+      const genres = Array.isArray(movieToEdit.genre)
+        ? movieToEdit.genre
+        : movieToEdit.genre
+          ? [movieToEdit.genre]
+          : [];
+      setSelectedGenres(genres);
+
+      const cast = Array.isArray(movieToEdit.cast)
+        ? movieToEdit.cast
+        : typeof movieToEdit.cast === 'string'
+          ? (movieToEdit.cast as string).split(',').map((s: string) => s.trim()).filter(Boolean)
+          : [];
+      setCastList(cast);
+
       if (movieToEdit.poster_url) {
         setPosterPreview(movieToEdit.poster_url);
       }
 
-      // Show trailer preview
       const trailerVal = movieToEdit.trailer_url || '';
       if (trailerVal) {
         setTrailerPreviewUrl(getYouTubeEmbedUrl(trailerVal) || '');
@@ -100,7 +142,6 @@ const MovieForm: React.FC<MovieFormProps> = ({ movieToEdit, onClose, onSave }) =
     }
   }, [movieToEdit, setValue]);
 
-  // Trailer preview
   useEffect(() => {
     if (watchTrailerUrl) {
       setTrailerPreviewUrl(getYouTubeEmbedUrl(watchTrailerUrl) || '');
@@ -108,6 +149,16 @@ const MovieForm: React.FC<MovieFormProps> = ({ movieToEdit, onClose, onSave }) =
       setTrailerPreviewUrl('');
     }
   }, [watchTrailerUrl]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (genreDropdownRef.current && !genreDropdownRef.current.contains(e.target as Node)) {
+        setShowGenreDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const validateFile = (file: File): string | null => {
     if (!ALLOWED_TYPES.includes(file.type)) {
@@ -170,41 +221,104 @@ const MovieForm: React.FC<MovieFormProps> = ({ movieToEdit, onClose, onSave }) =
     fileInputRef.current?.click();
   };
 
+  const handleToggleGenre = (genre: string) => {
+    setSelectedGenres((prev) => {
+      if (prev.includes(genre)) {
+        return prev.filter((g) => g !== genre);
+      }
+      return [...prev, genre];
+    });
+    setGenreError('');
+  };
+
+  const handleRemoveGenre = (genre: string) => {
+    setSelectedGenres((prev) => prev.filter((g) => g !== genre));
+  };
+
+  const filteredGenres = FIXED_GENRES.filter(
+    (g) =>
+      g.toLowerCase().includes(genreSearch.toLowerCase()) &&
+      !selectedGenres.includes(g),
+  );
+
+  const handleAddCast = () => {
+    const trimmed = castInput.trim();
+    if (!trimmed) return;
+
+    const isDuplicate = castList.some(
+      (c) => c.toLowerCase() === trimmed.toLowerCase(),
+    );
+    if (isDuplicate) {
+      setCastError('This cast member is already added');
+      return;
+    }
+
+    setCastList((prev) => [...prev, trimmed]);
+    setCastInput('');
+    setCastError('');
+  };
+
+  const handleRemoveCast = (index: number) => {
+    setCastList((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleCastKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddCast();
+    }
+  };
+
   const onSubmit: SubmitHandler<MovieFormInputs> = async (formData) => {
-    // Validate poster
     if (!movieToEdit && !posterFile) {
       setPosterError('Poster image is required');
       toast.error('Please upload a poster image');
       return;
     }
 
+    if (selectedGenres.length === 0) {
+      setGenreError('Please select at least one genre');
+      return;
+    }
+
     setIsSubmitting(true);
     setPosterError('');
+    setGenreError('');
     try {
       if (movieToEdit) {
-        await movieService.updateMovie(movieToEdit._id, {
-          title: formData.title,
-          description: formData.description,
-          genre: formData.genre,
-          duration: Number(formData.duration),
-          rating: Number(formData.rating) || 0,
-          trailer_url: formData.trailerUrl,
-          poster_url: posterPreview || '',
-          status: 'now_showing',
-        });
+        await movieService.updateMovie(
+          movieToEdit._id,
+          {
+            title: formData.title,
+            description: formData.description,
+            genre: selectedGenres,
+            duration: Number(formData.duration),
+            rating: formData.rating || '',
+            trailer_url: formData.trailerUrl,
+            status: 'now_showing',
+            director: formData.director,
+            cast: castList,
+          },
+          posterFile || undefined,
+        );
         toast.success('Movie updated successfully');
       } else {
-        await movieService.createMovie({
-          title: formData.title,
-          description: formData.description,
-          genre: formData.genre,
-          duration: Number(formData.duration),
-          rating: Number(formData.rating) || 0,
-          trailer_url: formData.trailerUrl,
-          poster_url: posterPreview || '',
-          release_date: '',
-          status: 'now_showing',
-        });
+        await movieService.createMovie(
+          {
+            title: formData.title,
+            description: formData.description,
+            genre: selectedGenres,
+            duration: Number(formData.duration),
+            rating: formData.rating || '',
+            trailer_url: formData.trailerUrl,
+            poster_url: '',
+            release_date: '',
+            status: 'now_showing',
+            director: formData.director,
+            cast: castList,
+          },
+          posterFile || undefined,
+        );
         toast.success('Movie added successfully');
       }
       onSave();
@@ -232,7 +346,6 @@ const MovieForm: React.FC<MovieFormProps> = ({ movieToEdit, onClose, onSave }) =
         exit="exit"
         className="card w-full max-w-3xl relative"
       >
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/[0.06]">
           <h2 className="text-2xl font-display font-bold text-white">
             {movieToEdit ? 'Edit Movie' : 'Add New Movie'}
@@ -245,7 +358,6 @@ const MovieForm: React.FC<MovieFormProps> = ({ movieToEdit, onClose, onSave }) =
           </button>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
           {/* Title */}
           <div>
@@ -284,22 +396,85 @@ const MovieForm: React.FC<MovieFormProps> = ({ movieToEdit, onClose, onSave }) =
             )}
           </div>
 
-          {/* Genre & Duration */}
+          {/* Genre Multi-Select */}
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-2">
+              Genre <span className="text-red-400">*</span>
+            </label>
+            <div className="relative" ref={genreDropdownRef}>
+              <div
+                onClick={() => setShowGenreDropdown(!showGenreDropdown)}
+                className="input min-h-[44px] cursor-pointer flex items-center flex-wrap gap-2"
+              >
+                {selectedGenres.length === 0 && (
+                  <span className="text-neutral-500">Select genres</span>
+                )}
+                {selectedGenres.map((genre) => (
+                  <span
+                    key={genre}
+                    className="inline-flex items-center gap-1 rounded-lg bg-primary-500/20 text-primary-300 border border-primary-500/30 px-2.5 py-1 text-xs font-medium"
+                  >
+                    {genre}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveGenre(genre);
+                      }}
+                      className="hover:text-white transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              {showGenreDropdown && (
+                <div className="absolute z-50 mt-1 w-full rounded-xl bg-dark-800 border border-white/[0.1] shadow-xl max-h-64 overflow-hidden">
+                  <div className="p-2 border-b border-white/[0.06]">
+                    <input
+                      type="text"
+                      value={genreSearch}
+                      onChange={(e) => setGenreSearch(e.target.value)}
+                      className="input text-sm py-2"
+                      placeholder="Search genres..."
+                      autoFocus
+                    />
+                  </div>
+                  <div className="overflow-y-auto max-h-48 p-1">
+                    {filteredGenres.length === 0 ? (
+                      <p className="text-center text-neutral-500 text-sm py-3">No genres found</p>
+                    ) : (
+                      filteredGenres.map((genre) => (
+                        <button
+                          key={genre}
+                          type="button"
+                          onClick={() => handleToggleGenre(genre)}
+                          className="w-full text-left px-3 py-2 rounded-lg text-sm text-neutral-300 hover:bg-white/[0.06] hover:text-white transition-colors"
+                        >
+                          {genre}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            {genreError && (
+              <p className="mt-1.5 text-sm text-red-400">{genreError}</p>
+            )}
+          </div>
+
+          {/* Director & Duration */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-neutral-300 mb-2">
-                Genre <span className="text-red-400">*</span>
+                Director
               </label>
               <input
-                {...register('genre', {
-                  required: 'Genre is required',
-                })}
+                {...register('director')}
                 className="input"
-                placeholder="e.g. Action, Drama, Comedy"
+                placeholder="Enter director name"
               />
-              {errors.genre && (
-                <p className="mt-1.5 text-sm text-red-400">{errors.genre.message}</p>
-              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-neutral-300 mb-2">
@@ -320,6 +495,56 @@ const MovieForm: React.FC<MovieFormProps> = ({ movieToEdit, onClose, onSave }) =
                 <p className="mt-1.5 text-sm text-red-400">{errors.duration.message}</p>
               )}
             </div>
+          </div>
+
+          {/* Cast */}
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-2">
+              Cast
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={castInput}
+                onChange={(e) => {
+                  setCastInput(e.target.value);
+                  if (castError) setCastError('');
+                }}
+                onKeyDown={handleCastKeyDown}
+                className="input flex-1"
+                placeholder="Enter cast member name"
+              />
+              <button
+                type="button"
+                onClick={handleAddCast}
+                disabled={!castInput.trim()}
+                className="btn btn-primary btn-sm whitespace-nowrap"
+              >
+                Add Cast
+              </button>
+            </div>
+            {castError && (
+              <p className="mt-1.5 text-sm text-red-400">{castError}</p>
+            )}
+            {castList.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {castList.map((name, index) => (
+                  <span
+                    key={`${name}-${index}`}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-white/[0.06] text-neutral-300 border border-white/[0.1] px-3 py-1.5 text-sm"
+                  >
+                    {name}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveCast(index)}
+                      className="text-neutral-500 hover:text-red-400 transition-colors"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* PG Rating */}
@@ -359,7 +584,6 @@ const MovieForm: React.FC<MovieFormProps> = ({ movieToEdit, onClose, onSave }) =
             />
 
             {posterPreview ? (
-              /* Preview state */
               <div className="relative">
                 <div className="flex gap-4 items-start">
                   <div className="w-32 h-48 rounded-xl overflow-hidden border border-white/[0.1] bg-dark-800/40 flex-shrink-0">
@@ -405,7 +629,6 @@ const MovieForm: React.FC<MovieFormProps> = ({ movieToEdit, onClose, onSave }) =
                 </div>
               </div>
             ) : (
-              /* Drop zone state */
               <div
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -660,10 +883,10 @@ export default function AdminMoviesPage() {
     return <ErrorMessage message={error} onRetry={fetchMovies} />;
   }
 
-  const genres = [...new Set(movies.map((movie) => movie.genre))].sort();
+  const allGenres = [...new Set(movies.flatMap((movie) => movie.genre || []))].sort();
   const filteredMovies = movies.filter((movie) => {
     const matchesSearch = !searchTerm || movie.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesGenre = !genreFilter || movie.genre === genreFilter;
+    const matchesGenre = !genreFilter || (movie.genre || []).includes(genreFilter);
     const matchesStatus = statusFilter === 'all' || movie.status === statusFilter;
     return matchesSearch && matchesGenre && matchesStatus;
   });
@@ -738,7 +961,7 @@ export default function AdminMoviesPage() {
           className="input"
         >
           <option value="">All Genres</option>
-          {genres.map((genre) => (
+          {allGenres.map((genre) => (
             <option key={genre} value={genre}>
               {genre}
             </option>
@@ -833,7 +1056,11 @@ export default function AdminMoviesPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="cinema-badge">{movie.genre}</span>
+                      <div className="flex flex-wrap gap-1">
+                        {(movie.genre || []).map((g) => (
+                          <span key={g} className="cinema-badge text-[10px]">{g}</span>
+                        ))}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-300">
                       {movie.duration} mins

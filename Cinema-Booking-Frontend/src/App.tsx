@@ -29,6 +29,7 @@ import ChangePasswordPage from './pages/user/ChangePasswordPage'
 import AdminLoginPage from './pages/admin/AdminLoginPage'
 import AdminDashboardPage from './pages/admin/AdminDashboardPage'
 import AdminMoviesPage from './pages/admin/AdminMoviesPage'
+import AdminCinemasPage from './pages/admin/AdminCinemasPage'
 import AdminHallsPage from './pages/admin/AdminHallsPage'
 import AdminShowtimesPage from './pages/admin/AdminShowtimesPage'
 import AdminBookingsPage from './pages/admin/AdminBookingsPage'
@@ -120,6 +121,7 @@ function App() {
         <Route path="movies" element={<AdminMoviesPage />} />
         <Route path="movies/new" element={<AdminMoviesPage />} />
         <Route path="movies/:movieId/edit" element={<AdminMoviesPage />} />
+        <Route path="cinemas" element={<AdminCinemasPage />} />
         <Route path="halls" element={<AdminHallsPage />} />
         <Route path="showtimes" element={<AdminShowtimesPage />} />
         <Route path="showtimes/new" element={<AdminShowtimesPage />} />

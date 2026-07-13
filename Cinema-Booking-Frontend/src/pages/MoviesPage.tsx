@@ -31,7 +31,7 @@ export default function MoviesPage() {
     try {
       const data = await movieService.getMovies();
       setMovies(data || []);
-      const uniqueGenres = [...new Set(data?.map((movie: IMovie) => movie.genre).filter(Boolean) || [])];
+      const uniqueGenres = [...new Set(data?.flatMap((movie: IMovie) => movie.genre || []).filter(Boolean) || [])];
       setGenres(uniqueGenres);
     } catch (error) {
       console.error('Error fetching movies:', error);
@@ -52,7 +52,7 @@ export default function MoviesPage() {
     }
 
     if (selectedGenre) {
-      filtered = filtered.filter(movie => movie.genre === selectedGenre);
+      filtered = filtered.filter(movie => (movie.genre || []).includes(selectedGenre));
     }
 
     if (selectedStatus !== 'all') {
@@ -60,7 +60,7 @@ export default function MoviesPage() {
     }
 
     if (sortBy === 'rating') {
-      filtered = [...filtered].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+      filtered = [...filtered].sort((a, b) => (a.rating || '').localeCompare(b.rating || ''));
     } else if (sortBy === 'title') {
       filtered = [...filtered].sort((a, b) => a.title.localeCompare(b.title));
     }

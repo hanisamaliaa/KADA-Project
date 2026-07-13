@@ -3,6 +3,7 @@ import {
   LayoutDashboard, 
   Film, 
   Building, 
+  Landmark,
   Calendar, 
   Users, 
   LogOut,
@@ -21,6 +22,7 @@ import toast from 'react-hot-toast'
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Movies', href: '/admin/movies', icon: Film },
+  { name: 'Cinemas', href: '/admin/cinemas', icon: Landmark },
   { name: 'Halls', href: '/admin/halls', icon: Building },
   { name: 'Showtimes', href: '/admin/showtimes', icon: Calendar },
   { name: 'Bookings', href: '/admin/bookings', icon: Users },

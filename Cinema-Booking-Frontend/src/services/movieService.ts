@@ -1,26 +1,23 @@
 import api from "./api";
 import type { IMovie, MovieFilters } from "@/types";
+import { resolvePosterUrl } from "@/lib/poster";
 
 interface BackendMovie {
   _id: string;
   title: string;
-  genre: string;
+  genre: string | string[];
   duration: number;
   rating: string;
   poster: string;
   trailerUrl: string;
   description: string;
+  director?: string;
+  cast?: string[];
+  updatedAt?: string;
 }
 
 const DEFAULT_POSTER =
   "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop";
-
-const isUrl = (s: string) => /^https?:\/\//i.test(s);
-
-const parseRating = (r: string): number => {
-  const n = parseFloat(r);
-  return isNaN(n) ? 0 : n;
-};
 
 const toEmbedUrl = (url: string): string => {
   if (!url) return "";
@@ -31,19 +28,27 @@ const toEmbedUrl = (url: string): string => {
   return url;
 };
 
+const normalizeGenres = (genre: string | string[] | undefined): string[] => {
+  if (Array.isArray(genre)) return genre.filter(Boolean);
+  if (typeof genre === "string" && genre.trim()) return [genre.trim()];
+  return [];
+};
+
 const mapMovie = (m: BackendMovie): IMovie => ({
   _id: m._id,
   title: m.title,
   description: m.description,
-  genre: m.genre,
+  genre: normalizeGenres(m.genre),
   duration: m.duration,
-  rating: parseRating(m.rating),
-  poster_url: isUrl(m.poster) ? m.poster : DEFAULT_POSTER,
+  rating: m.rating || "",
+  poster_url: resolvePosterUrl(m.poster, m.updatedAt) || DEFAULT_POSTER,
   trailer_url: toEmbedUrl(m.trailerUrl || ""),
   release_date: "",
   status: "now_showing",
+  director: m.director || "",
+  cast: Array.isArray(m.cast) ? m.cast : [],
   createdAt: "",
-  updatedAt: "",
+  updatedAt: m.updatedAt || "",
 });
 
 const getBackendError = (error: unknown): string => {
@@ -80,7 +85,7 @@ export const movieService = {
       if (filters.sort === "release_date") {
         movies.sort((a, b) => a.title.localeCompare(b.title));
       } else if (filters.sort === "rating") {
-        movies.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        movies.sort((a, b) => (a.rating || "").localeCompare(b.rating || ""));
       } else {
         movies.sort((a, b) => a.title.localeCompare(b.title));
       }
@@ -94,29 +99,71 @@ export const movieService = {
     return mapMovie(res.data.data);
   },
 
-  async createMovie(data: Omit<IMovie, "_id" | "createdAt" | "updatedAt">) {
+  async createMovie(
+    data: Omit<IMovie, "_id" | "createdAt" | "updatedAt">,
+    file?: File,
+  ) {
+    if (file) {
+      const formData = new FormData();
+      formData.append("title", data.title);
+      formData.append("genre", JSON.stringify(data.genre));
+      formData.append("duration", String(data.duration));
+      formData.append("rating", data.rating || "");
+      formData.append("trailerUrl", data.trailer_url || "");
+      formData.append("description", data.description);
+      formData.append("director", data.director || "");
+      formData.append("cast", JSON.stringify(data.cast || []));
+      formData.append("poster", file);
+      const res = await api.post("/movies", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return mapMovie(res.data.data);
+    }
     const payload = {
       title: data.title,
       genre: data.genre,
       duration: data.duration,
-      rating: String(data.rating || 0),
+      rating: data.rating || "",
       poster: data.poster_url,
       trailerUrl: data.trailer_url || "",
       description: data.description,
+      director: data.director || "",
+      cast: data.cast || [],
     };
     const res = await api.post("/movies", payload);
     return mapMovie(res.data.data);
   },
 
-  async updateMovie(id: string, data: Partial<IMovie>) {
+  async updateMovie(
+    id: string,
+    data: Partial<IMovie>,
+    file?: File,
+  ) {
+    if (file) {
+      const formData = new FormData();
+      if (data.title !== undefined) formData.append("title", data.title);
+      if (data.genre !== undefined) formData.append("genre", JSON.stringify(data.genre));
+      if (data.duration !== undefined) formData.append("duration", String(data.duration));
+      if (data.rating !== undefined) formData.append("rating", data.rating);
+      if (data.trailer_url !== undefined) formData.append("trailerUrl", data.trailer_url);
+      if (data.description !== undefined) formData.append("description", data.description);
+      if (data.director !== undefined) formData.append("director", data.director);
+      if (data.cast !== undefined) formData.append("cast", JSON.stringify(data.cast));
+      formData.append("poster", file);
+      const res = await api.put(`/movies/${id}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return mapMovie(res.data.data);
+    }
     const payload: Record<string, unknown> = {};
     if (data.title !== undefined) payload.title = data.title;
     if (data.genre !== undefined) payload.genre = data.genre;
     if (data.duration !== undefined) payload.duration = data.duration;
-    if (data.rating !== undefined) payload.rating = String(data.rating);
-    if (data.poster_url !== undefined) payload.poster = data.poster_url;
+    if (data.rating !== undefined) payload.rating = data.rating;
     if (data.trailer_url !== undefined) payload.trailerUrl = data.trailer_url;
     if (data.description !== undefined) payload.description = data.description;
+    if (data.director !== undefined) payload.director = data.director;
+    if (data.cast !== undefined) payload.cast = data.cast;
     const res = await api.put(`/movies/${id}`, payload);
     return mapMovie(res.data.data);
   },

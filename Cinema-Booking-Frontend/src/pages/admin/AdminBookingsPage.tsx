@@ -236,7 +236,10 @@ export default function AdminBookingsPage() {
                         />
                         <div className="ml-3">
                           <div className="text-sm font-medium text-white">{booking.showtime?.movie?.title}</div>
-                          <div className="text-sm text-neutral-500">{booking.showtime?.hall?.hall_name}</div>
+                          <div className="text-sm text-neutral-500">{booking.showtime?.hall?.hall_name || 'N/A'}</div>
+                          {booking.showtime?.cinema && (
+                            <div className="text-xs text-neutral-500">{booking.showtime.cinema.name} — {booking.showtime.cinema.city}</div>
+                          )}
                         </div>
                       </div>
                     </td>
