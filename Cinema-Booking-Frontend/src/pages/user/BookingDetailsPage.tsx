@@ -158,11 +158,12 @@ export default function BookingDetailsPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 rounded-xl bg-primary-500/10 border border-primary-500/20 flex items-center justify-center shrink-0">
-                      <Ticket className="h-5 w-5 text-primary-400" />
+                      <MapPin className="h-5 w-5 text-primary-400" />
                     </div>
                     <div>
-                      <p className="text-sm text-neutral-400">Booking ID</p>
-                      <p className="font-semibold text-white">#{booking._id.slice(-6)}</p>
+                      <p className="text-sm text-neutral-400">Cinema</p>
+                      <p className="font-semibold text-white">{booking.showtime?.cinema?.name || 'N/A'}</p>
+                      <p className="text-xs text-neutral-500">{booking.showtime?.cinema?.city || ''}</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-3">
@@ -171,7 +172,7 @@ export default function BookingDetailsPage() {
                     </div>
                     <div>
                       <p className="text-sm text-neutral-400">Hall</p>
-                      <p className="font-semibold text-white">{booking.showtime?.hall?.hall_name}</p>
+                      <p className="font-semibold text-white">{booking.showtime?.hall?.hall_name || 'N/A'}</p>
                     </div>
                   </div>
                 </div>

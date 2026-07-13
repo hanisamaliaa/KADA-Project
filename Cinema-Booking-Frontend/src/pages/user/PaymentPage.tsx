@@ -79,7 +79,7 @@ export default function PaymentPage() {
     }
   };
 
-  const onSubmit = async (_data: PaymentForm) => {
+  const onSubmit = async () => {
     if (!bookingData || !user) return;
 
     setLoading(true);
@@ -257,7 +257,10 @@ export default function PaymentPage() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg text-white">{movie.title}</h3>
-                  <p className="text-sm text-neutral-400">{showtime.hall.hall_name}</p>
+                  {showtime.cinema && (
+                    <p className="text-sm text-neutral-400">{showtime.cinema.name} — {showtime.cinema.city}</p>
+                  )}
+                  <p className="text-sm text-neutral-400">{showtime.hall?.hall_name || 'TBA'}</p>
                 </div>
               </div>
               <div className="border-t border-white/[0.06] pt-4 space-y-2.5">

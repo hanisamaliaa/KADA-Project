@@ -12,24 +12,34 @@ export interface IMovie {
   _id: string;
   title: string;
   description: string;
-  genre: string;
+  genre: string[];
   duration: number;
   release_date: string;
   poster_url: string;
+  poster?: string;
   trailer_url?: string;
   backdrop_url?: string;
   classification?: string;
   director?: string;
   cast?: string[];
-  rating?: number;
+  rating?: string;
   status: 'now_showing' | 'coming_soon';
   is_now_showing?: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
+export interface ICinema {
+  _id: string;
+  name: string;
+  city: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface IHall {
   _id: string;
+  cinema?: ICinema;
   hall_name: string;
   total_seats: number;
   layout_rows: number;
@@ -43,6 +53,7 @@ export interface IShowtime {
   _id: string;
   movie: IMovie;
   hall: IHall;
+  cinema?: ICinema;
   show_date: string;
   start_time: string;
   end_time: string;
@@ -70,6 +81,7 @@ export interface MovieFilters {
 export interface ShowtimeInput {
   movie: string;
   hall: string;
+  cinema: string;
   show_date: string;
   start_time: string;
   end_time: string;

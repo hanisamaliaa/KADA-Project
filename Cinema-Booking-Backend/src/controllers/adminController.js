@@ -2,25 +2,29 @@ const Booking = require("../models/Booking");
 const Movie = require("../models/Movie");
 const Showtime = require("../models/Showtime");
 const User = require("../models/User");
+const Cinema = require("../models/Cinema");
+const Hall = require("../models/Hall");
 const asyncHandler = require("../utils/asyncHandler");
 
-// GET /api/admin/stats — dashboard statistics (§7.1, §9.5)
+// GET /api/admin/stats — dashboard statistics
 const getStats = asyncHandler(async (req, res) => {
-  const [totalMovies, totalShowtimes, totalBookings, totalUsers] = await Promise.all([
-    Movie.countDocuments(),
-    Showtime.countDocuments(),
-    Booking.countDocuments(),
-    User.countDocuments(),
-  ]);
+  const [totalMovies, totalHalls, totalShowtimes, totalBookings, totalUsers, totalCinemas] =
+    await Promise.all([
+      Movie.countDocuments(),
+      Hall.countDocuments(),
+      Showtime.countDocuments(),
+      Booking.countDocuments(),
+      User.countDocuments(),
+      Cinema.countDocuments(),
+    ]);
 
   res.status(200).json({
     success: true,
-    data: { totalMovies, totalShowtimes, totalBookings, totalUsers },
+    data: { totalMovies, totalHalls, totalShowtimes, totalBookings, totalUsers, totalCinemas },
   });
 });
 
-// GET /api/admin/bookings — all bookings for monitoring (§7.4, §9.4)
-// Optional query: ?page=&limit=
+// GET /api/admin/bookings — all bookings for monitoring
 const getAllBookings = asyncHandler(async (req, res) => {
   const page = parseInt(req.query.page, 10) || 1;
   const limit = parseInt(req.query.limit, 10) || 10;
@@ -28,9 +32,15 @@ const getAllBookings = asyncHandler(async (req, res) => {
 
   const [bookings, totalItems] = await Promise.all([
     Booking.find()
-      .populate("userId", "name email") // who (no password)
-      .populate("movieId", "title") // which movie
-      .populate("showtimeId", "date time studio price") // which schedule
+      .populate("userId", "name email")
+      .populate("movieId", "title poster")
+      .populate({
+        path: "showtimeId",
+        populate: [
+          { path: "cinema", select: "name city" },
+          { path: "hall", select: "name rows columns totalSeats" },
+        ],
+      })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit),

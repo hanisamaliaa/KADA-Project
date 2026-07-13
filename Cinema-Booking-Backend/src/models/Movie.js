@@ -1,5 +1,29 @@
 const mongoose = require("mongoose");
 
+const ALLOWED_GENRES = [
+  "Action",
+  "Adventure",
+  "Animation",
+  "Biography",
+  "Comedy",
+  "Crime",
+  "Documentary",
+  "Drama",
+  "Family",
+  "Fantasy",
+  "History",
+  "Horror",
+  "Music",
+  "Musical",
+  "Mystery",
+  "Romance",
+  "Sci-Fi",
+  "Sport",
+  "Thriller",
+  "War",
+  "Western",
+];
+
 const movieSchema = new mongoose.Schema({
   title: {
     type: String,
@@ -8,9 +32,14 @@ const movieSchema = new mongoose.Schema({
   },
 
   genre: {
-    type: String,
+    type: [String],
     required: true,
-    trim: true,
+    validate: {
+      validator: function (v) {
+        return Array.isArray(v) && v.length > 0;
+      },
+      message: "At least one genre is required",
+    },
   },
 
   duration: {
@@ -33,7 +62,6 @@ const movieSchema = new mongoose.Schema({
   trailerUrl: {
     type: String,
     trim: true,
-    // Optional — a YouTube/video URL for the trailer preview.
   },
 
   description: {
@@ -41,6 +69,18 @@ const movieSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
-});
+
+  director: {
+    type: String,
+    trim: true,
+    default: "",
+  },
+
+  cast: {
+    type: [String],
+    default: [],
+  },
+}, { timestamps: true });
 
 module.exports = mongoose.model("Movie", movieSchema);
+module.exports.ALLOWED_GENRES = ALLOWED_GENRES;

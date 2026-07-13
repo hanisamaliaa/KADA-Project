@@ -3,12 +3,14 @@ import { useForm, SubmitHandler } from 'react-hook-form';
 import { Plus, Edit, Trash2, Building, Armchair, LayoutGrid } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LoadingSpinner, { Skeleton } from '@/components/LoadingSpinner';
-import ErrorMessage from '@/components/ErrorMessage';
 import toast from 'react-hot-toast';
 import { showtimeService } from '@/services/showtimeService';
+import { cinemaService } from '@/services/cinemaService';
+import type { ICinema } from '@/types';
 
-export interface IHall {
+export interface IHallLocal {
   _id: string;
+  cinema?: ICinema;
   hall_name: string;
   total_seats: number;
   layout_rows: number;
@@ -17,10 +19,15 @@ export interface IHall {
   updatedAt: string;
 }
 
-type HallFormData = Omit<IHall, '_id' | 'createdAt' | 'updatedAt'>;
+type HallFormData = {
+  cinema_id: string;
+  hall_name: string;
+  layout_rows: number;
+  layout_columns: number;
+};
 
 interface HallFormProps {
-  hallToEdit: IHall | null;
+  hallToEdit: IHallLocal | null;
   onClose: () => void;
   onSave: () => void;
 }
@@ -29,13 +36,13 @@ const modalOverlayVariants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { duration: 0.2 } },
   exit: { opacity: 0, transition: { duration: 0.15 } },
-}
+} as const;
 
 const modalContentVariants = {
   hidden: { opacity: 0, scale: 0.95, y: 12 },
   visible: { opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 400, damping: 30 } },
   exit: { opacity: 0, scale: 0.95, y: 12, transition: { duration: 0.15 } },
-}
+} as const;
 
 const hallColorPalette = [
   { bg: 'bg-blue-500/15', text: 'text-blue-400', dot: 'bg-blue-400/30 group-hover:bg-blue-400/70' },
@@ -68,21 +75,36 @@ function MiniSeatMap({ rows, columns, dotClass }: { rows: number; columns: numbe
 }
 
 const HallForm: React.FC<HallFormProps> = ({ hallToEdit, onClose, onSave }) => {
+  const [cinemas, setCinemas] = useState<ICinema[]>([]);
+
   const {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<HallFormData>();
 
+  const watchRows = watch('layout_rows');
+  const watchColumns = watch('layout_columns');
+
+  useEffect(() => {
+    cinemaService.getCinemas().then(setCinemas).catch(() => {});
+  }, []);
+
   useEffect(() => {
     if (hallToEdit) {
-      reset(hallToEdit);
+      reset({
+        cinema_id: hallToEdit.cinema?._id || '',
+        hall_name: hallToEdit.hall_name,
+        layout_rows: hallToEdit.layout_rows,
+        layout_columns: hallToEdit.layout_columns,
+      });
     } else {
       reset({
+        cinema_id: '',
         hall_name: '',
-        total_seats: 100,
-        layout_rows: 10,
+        layout_rows: 8,
         layout_columns: 10,
       });
     }
@@ -90,9 +112,11 @@ const HallForm: React.FC<HallFormProps> = ({ hallToEdit, onClose, onSave }) => {
 
   const onSubmit: SubmitHandler<HallFormData> = async (formData) => {
     try {
+      const selectedCinema = cinemas.find(c => c._id === formData.cinema_id);
       const dataToSubmit = {
-        ...formData,
-        total_seats: Number(formData.total_seats),
+        cinema: selectedCinema ? { _id: selectedCinema._id, name: selectedCinema.name, city: selectedCinema.city, createdAt: '', updatedAt: '' } : undefined,
+        hall_name: formData.hall_name,
+        total_seats: formData.layout_rows * formData.layout_columns,
         layout_rows: Number(formData.layout_rows),
         layout_columns: Number(formData.layout_columns),
       };
@@ -105,6 +129,7 @@ const HallForm: React.FC<HallFormProps> = ({ hallToEdit, onClose, onSave }) => {
 
       toast.success(`Hall ${hallToEdit ? 'updated' : 'added'} successfully!`);
       onSave();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       toast.error(error.message);
       console.error('Error saving hall:', error);
@@ -130,25 +155,51 @@ const HallForm: React.FC<HallFormProps> = ({ hallToEdit, onClose, onSave }) => {
         <h2 className="text-2xl font-display font-bold text-white mb-6">{hallToEdit ? 'Edit Hall' : 'Add New Hall'}</h2>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-1">Cinema</label>
+            <select {...register('cinema_id', { required: 'Cinema is required' })} className="input">
+              <option value="">Select a cinema</option>
+              {cinemas.map(cinema => (
+                <option key={cinema._id} value={cinema._id}>{cinema.name} - {cinema.city}</option>
+              ))}
+            </select>
+            {errors.cinema_id && <p className="text-red-400 text-sm mt-1">{errors.cinema_id.message}</p>}
+          </div>
+          <div>
             <label className="block text-sm font-medium text-neutral-300 mb-1">Hall Name</label>
-            <input {...register('hall_name', { required: 'Hall name is required' })} className="input" />
+            <input {...register('hall_name', { required: 'Hall name is required' })} className="input" placeholder="e.g. Studio 1" />
             {errors.hall_name && <p className="text-red-400 text-sm mt-1">{errors.hall_name.message}</p>}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1">Total Seats</label>
-              <input type="number" {...register('total_seats', { required: 'Total seats is required', valueAsNumber: true })} className="input" />
-              {errors.total_seats && <p className="text-red-400 text-sm mt-1">{errors.total_seats.message}</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1">Rows</label>
-              <input type="number" {...register('layout_rows', { required: 'Number of rows is required', valueAsNumber: true })} className="input" />
+              <label className="block text-sm font-medium text-neutral-300 mb-1">Rows (max 10)</label>
+              <input
+                type="number"
+                min={1}
+                max={10}
+                {...register('layout_rows', { required: 'Rows is required', valueAsNumber: true, min: { value: 1, message: 'Min 1' }, max: { value: 10, message: 'Max 10' } })}
+                className="input"
+              />
               {errors.layout_rows && <p className="text-red-400 text-sm mt-1">{errors.layout_rows.message}</p>}
             </div>
-             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1">Columns</label>
-              <input type="number" {...register('layout_columns', { required: 'Number of columns is required', valueAsNumber: true })} className="input" />
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-1">Columns (max 10)</label>
+              <input
+                type="number"
+                min={1}
+                max={10}
+                {...register('layout_columns', { required: 'Columns is required', valueAsNumber: true, min: { value: 1, message: 'Min 1' }, max: { value: 10, message: 'Max 10' } })}
+                className="input"
+              />
               {errors.layout_columns && <p className="text-red-400 text-sm mt-1">{errors.layout_columns.message}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-1">Total Seats</label>
+              <input
+                type="number"
+                readOnly
+                value={(Number(watchRows) || 0) * (Number(watchColumns) || 0)}
+                className="input bg-dark-800/40 cursor-not-allowed"
+              />
             </div>
           </div>
           <div className="flex justify-end space-x-4 pt-4">
@@ -170,7 +221,7 @@ const HallForm: React.FC<HallFormProps> = ({ hallToEdit, onClose, onSave }) => {
 };
 
 interface DeleteModalProps {
-    hall: IHall;
+    hall: IHallLocal;
     onClose: () => void;
     onConfirm: (hallId: string) => void;
 }
@@ -214,12 +265,12 @@ const DeleteConfirmationModal: React.FC<DeleteModalProps> = ({ hall, onClose, on
 };
 
 export default function AdminHallsPage() {
-  const [halls, setHalls] = useState<IHall[]>([]);
+  const [halls, setHalls] = useState<IHallLocal[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [, setError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingHall, setEditingHall] = useState<IHall | null>(null);
-  const [hallToDelete, setHallToDelete] = useState<IHall | null>(null);
+  const [editingHall, setEditingHall] = useState<IHallLocal | null>(null);
+  const [hallToDelete, setHallToDelete] = useState<IHallLocal | null>(null);
 
   useEffect(() => {
     fetchHalls();
@@ -230,7 +281,7 @@ export default function AdminHallsPage() {
     try {
       setError('');
       const data = await showtimeService.getHalls();
-      setHalls(data || []);
+      setHalls((data || []) as unknown as IHallLocal[]);
     } catch (error) {
       console.error('Error fetching halls:', error);
       setError('Unable to load halls. Please try again.');
@@ -239,7 +290,7 @@ export default function AdminHallsPage() {
     }
   };
 
-  const handleOpenModal = (hall: IHall | null) => {
+  const handleOpenModal = (hall: IHallLocal | null) => {
     setEditingHall(hall);
     setIsModalOpen(true);
   };
@@ -254,7 +305,7 @@ export default function AdminHallsPage() {
     handleCloseModal();
   };
 
-  const handleDeleteClick = (hall: IHall) => {
+  const handleDeleteClick = (hall: IHallLocal) => {
     setHallToDelete(hall);
   };
 
@@ -263,6 +314,7 @@ export default function AdminHallsPage() {
       await showtimeService.deleteHall(hallId);
       toast.success('Hall deleted successfully');
       fetchHalls();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete hall');
     } finally {
@@ -280,30 +332,12 @@ export default function AdminHallsPage() {
           </div>
           <Skeleton className="h-10 w-28 rounded-xl" />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="card p-5 flex items-center gap-3">
-              <Skeleton className="h-10 w-10 rounded-xl" />
-              <div className="space-y-2">
-                <Skeleton className="h-3 w-20 rounded" />
-                <Skeleton className="h-5 w-14 rounded" />
-              </div>
-            </div>
-          ))}
-        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="card p-6 space-y-4">
-              <div className="flex items-center gap-3">
-                <Skeleton className="h-12 w-12 rounded-xl" />
-                <div className="space-y-2 flex-1">
-                  <Skeleton className="h-4 w-24 rounded" />
-                  <Skeleton className="h-3 w-32 rounded" />
-                </div>
-              </div>
+              <Skeleton className="h-12 w-12 rounded-xl" />
+              <Skeleton className="h-4 w-24 rounded" />
               <Skeleton className="h-16 w-full rounded-lg" />
-              <Skeleton className="h-4 w-full rounded" />
-              <Skeleton className="h-4 w-3/4 rounded" />
             </div>
           ))}
         </div>
@@ -314,12 +348,12 @@ export default function AdminHallsPage() {
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
-  };
+  } as const;
 
   const cardVariants = {
     hidden: { opacity: 0, y: 16 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
-  };
+  } as const;
 
   return (
     <div className="space-y-6">
@@ -438,7 +472,9 @@ export default function AdminHallsPage() {
                     </div>
                     <div>
                         <h3 className="text-lg font-display font-semibold text-white">{hall.hall_name}</h3>
-                        <p className="text-sm text-neutral-500 truncate">ID: {hall._id}</p>
+                        <p className="text-sm text-neutral-500 truncate">
+                          {hall.cinema ? `${hall.cinema.name} - ${hall.cinema.city}` : 'No cinema assigned'}
+                        </p>
                     </div>
                     </div>
                 </div>
@@ -456,12 +492,6 @@ export default function AdminHallsPage() {
                     <span className="text-neutral-500 text-sm">Layout</span>
                     <span className="text-white font-medium text-sm">
                         {hall.layout_rows} &times; {hall.layout_columns}
-                    </span>
-                    </div>
-                    <div className="flex justify-between">
-                    <span className="text-neutral-500 text-sm">Created</span>
-                    <span className="text-white font-medium text-sm">
-                        {new Date(hall.createdAt).toLocaleDateString()}
                     </span>
                     </div>
                 </div>

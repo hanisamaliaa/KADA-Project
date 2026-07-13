@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { Eye, CheckCircle, XCircle, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import ErrorMessage from '@/components/ErrorMessage';
 import toast from 'react-hot-toast';
 import { adminService } from '@/services/adminService';
 import { movieService } from '@/services/movieService';
@@ -13,7 +12,7 @@ export default function AdminBookingsPage() {
   const [bookings, setBookings] = useState<IBooking[]>([]);
   const [movies, setMovies] = useState<IMovie[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [, setError] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [movieFilter, setMovieFilter] = useState('');
@@ -113,17 +112,17 @@ export default function AdminBookingsPage() {
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.04 } },
-  };
+  } as const;
 
   const rowVariants = {
     hidden: { opacity: 0, y: 8 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.25 } },
-  };
+  } as const;
 
   const itemVariants = {
     hidden: { opacity: 0, y: 12 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
-  };
+  } as const;
 
   return (
     <div className="space-y-6">
@@ -237,7 +236,10 @@ export default function AdminBookingsPage() {
                         />
                         <div className="ml-3">
                           <div className="text-sm font-medium text-white">{booking.showtime?.movie?.title}</div>
-                          <div className="text-sm text-neutral-500">{booking.showtime?.hall?.hall_name}</div>
+                          <div className="text-sm text-neutral-500">{booking.showtime?.hall?.hall_name || 'N/A'}</div>
+                          {booking.showtime?.cinema && (
+                            <div className="text-xs text-neutral-500">{booking.showtime.cinema.name} — {booking.showtime.cinema.city}</div>
+                          )}
                         </div>
                       </div>
                     </td>

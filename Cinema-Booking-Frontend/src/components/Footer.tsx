@@ -14,7 +14,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+
 import logo from "../assets/logo.png";
 
 const quickLinks = [

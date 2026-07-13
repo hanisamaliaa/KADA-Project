@@ -1,17 +1,19 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, Clock, MapPin, Play, Search, Star, Ticket, ChevronRight } from 'lucide-react';
+import { CalendarDays, Clock, MapPin, Play, Search, Ticket, ChevronRight } from 'lucide-react';
 import { IMovie } from '@/types';
 import MovieCard from '@/components/MovieCard';
 import { MovieCardSkeleton } from '@/components/LoadingSpinner';
 import { movieService } from '@/services/movieService';
+import { showtimeService } from '@/services/showtimeService';
 import { motion, useScroll, useTransform } from 'framer-motion';
 
 const TRAILER_VIDEO_ID = 'gMC8kkwbIQQ';
 const TRAILER_EMBED_URL = `https://www.youtube.com/embed/${TRAILER_VIDEO_ID}?autoplay=1&mute=1&loop=1&playlist=${TRAILER_VIDEO_ID}&controls=0&modestbranding=1&rel=0&playsinline=1&enablejsapi=1&disablekb=1&fs=0&iv_load_policy=3&hidecontrols=1&showinfo=0&color=white`;
 
 export default function HomePage() {
-  const [movies, setMovies] = useState<IMovie[]>([]);
+  const [nowPlaying, setNowPlaying] = useState<IMovie[]>([]);
+  const [comingSoon, setComingSoon] = useState<IMovie[]>([]);
   const [loading, setLoading] = useState(true);
   const [featuredMovie, setFeaturedMovie] = useState<IMovie | null>(null);
   const [error, setError] = useState('');
@@ -38,9 +40,34 @@ export default function HomePage() {
 
   const fetchMovies = async () => {
     try {
-      const data = await movieService.getMovies();
-      setMovies(data || []);
-      const featuredPool = data || [];
+      setError('');
+      const [allMovies, nowPlayingData, comingSoonData] = await Promise.all([
+        movieService.getMovies(),
+        showtimeService.getNowPlaying().catch(() => []),
+        showtimeService.getComingSoon().catch(() => []),
+      ]);
+
+      const allMapped: IMovie[] = (allMovies || []).map((m: IMovie) => ({
+        ...m,
+        status: 'now_showing' as const,
+      }));
+
+      const nowPlayingMapped: IMovie[] = (nowPlayingData || []).map((m: IMovie) => ({
+        ...m,
+        poster_url: m.poster_url || m.poster || 'https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop',
+        status: 'now_showing' as const,
+      }));
+
+      const comingSoonMapped: IMovie[] = (comingSoonData || []).map((m: IMovie) => ({
+        ...m,
+        poster_url: m.poster_url || m.poster || 'https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop',
+        status: 'coming_soon' as const,
+      }));
+
+      setNowPlaying(nowPlayingMapped.length > 0 ? nowPlayingMapped : allMapped);
+      setComingSoon(comingSoonMapped);
+
+      const featuredPool = nowPlayingMapped.length > 0 ? nowPlayingMapped : allMapped;
       if (featuredPool.length > 0) {
         const randomIndex = Math.floor(Math.random() * featuredPool.length);
         setFeaturedMovie(featuredPool[randomIndex]);
@@ -53,8 +80,6 @@ export default function HomePage() {
     }
   };
 
-  const nowShowing = movies;
-  const comingSoon: typeof movies = [];
   const backdrop = featuredMovie?.poster_url || 'https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop';
 
   if (loading) {
@@ -176,9 +201,13 @@ export default function HomePage() {
                   >
                     <div className="relative overflow-hidden rounded-2xl shadow-poster ring-1 ring-white/[0.12] group-hover:ring-white/[0.2] transition-all duration-500">
                       <img
+                        key={`hero-poster-${featuredMovie._id}-${featuredMovie.updatedAt}`}
                         src={featuredMovie.poster_url || 'https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop'}
                         alt={featuredMovie.title}
                         className="relative w-[270px] h-[405px] object-cover transition-all duration-700 group-hover:scale-105"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop';
+                        }}
                       />
 
                       {/* Light Sweep Effect */}
@@ -218,8 +247,7 @@ export default function HomePage() {
                   )}
                   {featuredMovie.rating && (
                     <span className="cinema-badge bg-amber-500/15 text-amber-300 border-amber-500/25">
-                      <Star className="h-3.5 w-3.5 fill-current" />
-                      {featuredMovie.rating.toFixed(1)}
+                      {featuredMovie.rating}
                     </span>
                   )}
                 </motion.div>
@@ -260,7 +288,7 @@ export default function HomePage() {
                     {featuredMovie.duration} min
                   </span>
                   <span className="info-chip">
-                    {featuredMovie.genre}
+                    {Array.isArray(featuredMovie.genre) ? featuredMovie.genre.join(' • ') : featuredMovie.genre}
                   </span>
                   {featuredMovie.classification && (
                     <span className="info-chip">
@@ -367,7 +395,7 @@ export default function HomePage() {
         </motion.div>
       </section>
 
-      {/* Now Showing Section */}
+      {/* Now Playing Section */}
       <section className="px-4 py-24 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="mb-14 flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
@@ -411,9 +439,9 @@ export default function HomePage() {
             </div>
           )}
 
-          {nowShowing.length > 0 ? (
+          {nowPlaying.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {nowShowing.slice(0, 4).map((movie, index) => (
+              {nowPlaying.slice(0, 4).map((movie, index) => (
                 <motion.div
                   key={movie._id}
                   initial={{ opacity: 0, y: 32 }}

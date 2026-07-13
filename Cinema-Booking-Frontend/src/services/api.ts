@@ -1,10 +1,10 @@
-import axios from 'axios';
+import axios from "axios";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5001/api',
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5001/api",
   withCredentials: true,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
@@ -32,13 +32,17 @@ api.interceptors.response.use(
 
     // Never try to "refresh + retry" the auth endpoints themselves — a wrong-password
     // login (401) must surface its error, not trigger a refresh + redirect loop.
-    const url: string = originalRequest?.url || '';
+    const url: string = originalRequest?.url || "";
     const isAuthCall =
-      url.includes('/auth/login') ||
-      url.includes('/auth/refresh') ||
-      url.includes('/auth/logout');
+      url.includes("/auth/login") ||
+      url.includes("/auth/refresh") ||
+      url.includes("/auth/logout");
 
-    if (error.response?.status === 401 && !originalRequest._retry && !isAuthCall) {
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !isAuthCall
+    ) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -52,7 +56,7 @@ api.interceptors.response.use(
 
       try {
         await axios.post(
-          `${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/auth/refresh`,
+          `${import.meta.env.VITE_API_URL || "http://localhost:5001/api"}/auth/refresh`,
           {},
           { withCredentials: true },
         );
@@ -60,8 +64,8 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError);
-        localStorage.removeItem('cinematix_demo_user');
-        window.location.href = '/login';
+        localStorage.removeItem("cinematix_demo_user");
+        window.location.href = "/login";
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

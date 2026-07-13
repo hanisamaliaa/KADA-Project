@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Film, Building, Calendar, Users, TrendingUp, Sparkles, ArrowUpRight, Clock, Trophy, PlusCircle, CalendarPlus, FileBarChart, ChevronRight } from 'lucide-react'
+import { Film, Building, Landmark, Calendar, Users, TrendingUp, Sparkles, ArrowUpRight, Clock, Trophy, PlusCircle, CalendarPlus, FileBarChart, ChevronRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 import { Skeleton } from '@/components/LoadingSpinner'
@@ -10,10 +10,12 @@ import { adminService } from '@/services/adminService';
 interface DashboardStats {
   totalMovies: number;
   totalHalls: number;
+  totalCinemas: number;
   totalShowtimes: number;
   totalBookings: number;
   totalUsers: number;
   totalRevenue: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   recentBookings: any[];
   popularMovies: { title: string; seats: number }[];
   weeklyRevenue?: { date: string; revenue: number }[];
@@ -25,12 +27,12 @@ const containerVariants = {
     opacity: 1,
     transition: { staggerChildren: 0.06, delayChildren: 0.1 },
   },
-}
+} as const
 
 const itemVariants = {
   hidden: { opacity: 0, y: 16 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
-}
+} as const
 
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
@@ -38,6 +40,7 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState<DashboardStats>({
     totalMovies: 0,
     totalHalls: 0,
+    totalCinemas: 0,
     totalShowtimes: 0,
     totalBookings: 0,
     totalUsers: 0,
@@ -72,8 +75,8 @@ export default function AdminDashboardPage() {
           <Skeleton className="h-8 w-56 mb-2 rounded-lg" />
           <Skeleton className="h-4 w-72 rounded-lg" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
-          {Array.from({ length: 6 }).map((_, i) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          {Array.from({ length: 7 }).map((_, i) => (
             <div key={i} className="card p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
@@ -134,6 +137,15 @@ export default function AdminDashboardPage() {
       bgColor: 'bg-blue-500/15',
       accent: 'before:bg-blue-500',
       route: '/admin/movies'
+    },
+    {
+      title: 'Total Cinemas',
+      value: stats.totalCinemas,
+      icon: Landmark,
+      color: 'text-emerald-400',
+      bgColor: 'bg-emerald-500/15',
+      accent: 'before:bg-emerald-500',
+      route: '/admin/cinemas'
     },
     {
       title: 'Total Halls',

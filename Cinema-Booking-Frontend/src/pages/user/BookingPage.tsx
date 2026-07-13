@@ -18,6 +18,21 @@ interface SeatSelectionData {
   totalAmount: number;
 }
 
+const ROW_LABELS = 'ABCDEFGHIJ'.split('');
+
+function generateSeatLayout(rows: number, columns: number) {
+  const layout = [];
+  for (let r = 0; r < Math.min(rows, 10); r++) {
+    const rowLabel = ROW_LABELS[r];
+    const seats = [];
+    for (let c = 1; c <= columns; c++) {
+      seats.push({ id: `${rowLabel}${c}`, row: rowLabel, column: c });
+    }
+    layout.push({ label: rowLabel, seats });
+  }
+  return layout;
+}
+
 export default function BookingPage() {
   const { movieId } = useParams<{ movieId: string }>();
   const { showtimeId } = useParams<{ showtimeId: string }>();
@@ -79,9 +94,9 @@ export default function BookingPage() {
     }
   };
 
-  const fetchOccupiedSeats = async (showtimeId: string) => {
+  const fetchOccupiedSeats = async (sid: string) => {
     try {
-      const data = await bookingService.getSeatAvailability(showtimeId);
+      const data = await bookingService.getSeatAvailability(sid);
       setOccupiedSeats(data);
     } catch (error) {
       console.error("Error fetching occupied seats:", error);
@@ -89,26 +104,16 @@ export default function BookingPage() {
     }
   };
 
-  const generateSeats = () => {
-    const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
-    const seatsPerRow = 10;
-    const seats = [];
-    
-    for (const row of rows) {
-      for (let i = 1; i <= seatsPerRow; i++) {
-        const seatId = `${row}${i}`;
-        const isOccupied = occupiedSeats.includes(seatId);
-        seats.push({
-          id: seatId,
-          row,
-          category: row === 'H' || row === 'I' ? 'premiere' : row === 'J' ? 'couple' : 'regular',
-          isOccupied,
-        });
-      }
-    }
-    
-    return seats;
-  };
+  const seatLayout = selectedShowtime
+    ? generateSeatLayout(
+        selectedShowtime.hall?.layout_rows || 8,
+        selectedShowtime.hall?.layout_columns || 10
+      )
+    : generateSeatLayout(8, 10);
+
+  const totalCols = selectedShowtime
+    ? selectedShowtime.hall?.layout_columns || 10
+    : 10;
 
   const handleSeatClick = (seatId: string) => {
     if (occupiedSeats.includes(seatId)) return;
@@ -160,6 +165,8 @@ export default function BookingPage() {
     );
   }
 
+  const cinemaInfo = selectedShowtime?.cinema;
+
   return (
     <div className="min-h-screen bg-dark-950 text-neutral-100 font-sans">
       <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-dark-950/70 backdrop-blur-2xl">
@@ -206,10 +213,12 @@ export default function BookingPage() {
                 <p className="section-eyebrow mb-2">Schedule</p>
                 <h2 className="text-xl font-semibold text-white">Choose Date & Time</h2>
               </div>
-              <div className="flex items-center gap-2 text-sm text-neutral-400">
-                <MapPin className="h-4 w-4 text-accent-500" />
-                CineLux Grand Indonesia
-              </div>
+              {cinemaInfo && (
+                <div className="flex items-center gap-2 text-sm text-neutral-400">
+                  <MapPin className="h-4 w-4 text-accent-500" />
+                  {cinemaInfo.name} — {cinemaInfo.city}
+                </div>
+              )}
             </div>
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none">
             {showtimes.map((showtime) => (
@@ -232,8 +241,14 @@ export default function BookingPage() {
                     <span className="block text-2xl font-black text-white">{showtime.start_time}</span>
                     <span className="mt-1 flex items-center gap-2 text-sm text-neutral-400">
                       <Clock className="h-4 w-4" />
-                      {showtime.hall.hall_name}
+                      {showtime.hall?.hall_name || 'TBA'}
                     </span>
+                    {showtime.cinema && (
+                      <span className="mt-0.5 flex items-center gap-2 text-xs text-neutral-500">
+                        <MapPin className="h-3 w-3" />
+                        {showtime.cinema.name}
+                      </span>
+                    )}
                 </button>
             ))}
             </div>
@@ -247,43 +262,44 @@ export default function BookingPage() {
             transition={{ duration: 0.5, delay: 0.2 }}
           >
             <div className="lg:col-span-2 glass-panel p-6 sm:p-8">
-              <div className="mx-auto mb-10 max-w-3xl">
+              <div className="mx-auto mb-10" style={{ maxWidth: `${totalCols * 48 + 48}px` }}>
                 <div className="h-10 rounded-t-full border-t-4 border-accent-500 bg-gradient-to-b from-accent-500/20 to-transparent text-center text-xs font-bold uppercase tracking-[0.35em] text-accent-500">
                   Screen
                 </div>
               </div>
-              <div className="mx-auto mb-6 max-w-3xl space-y-2 overflow-x-auto pb-2">
-                  {['A','B','C','D','E','F','G','H','I','J'].map((row) => (
-                    <div key={row} className="grid min-w-[430px] grid-cols-[24px_repeat(10,1fr)_24px] items-center gap-2">
-                      <span className="text-center text-xs font-bold text-neutral-600">{row}</span>
-                      {generateSeats().filter((seat) => seat.row === row).map((seat) => (
-                        <button
-                          key={seat.id}
-                          onClick={() => handleSeatClick(seat.id)}
-                          disabled={seat.isOccupied}
-                          className={`seat mx-auto ${
-                            seat.isOccupied
-                              ? 'seat-occupied'
-                              : selectedSeats.includes(seat.id)
-                              ? 'seat-selected'
-                              : seat.category === 'premiere' || seat.category === 'couple'
-                              ? 'seat-premiere'
-                              : 'seat-available'
-                          }`}
-                          aria-label={`Seat ${seat.id}`}
-                        >
-                          {seat.id.replace(row, '')}
-                        </button>
-                      ))}
-                      <span className="text-center text-xs font-bold text-neutral-600">{row}</span>
+              <div className="mx-auto mb-6 space-y-2 overflow-x-auto pb-2" style={{ maxWidth: `${totalCols * 48 + 48}px` }}>
+                  {seatLayout.map((row) => (
+                    <div key={row.label} className="grid items-center gap-2" style={{ gridTemplateColumns: `24px repeat(${totalCols}, minmax(0, 1fr)) 24px` }}>
+                      <span className="text-center text-xs font-bold text-neutral-600">{row.label}</span>
+                      {row.seats.map((seat) => {
+                        const isOccupied = occupiedSeats.includes(seat.id);
+                        const isSelected = selectedSeats.includes(seat.id);
+                        return (
+                          <button
+                            key={seat.id}
+                            onClick={() => handleSeatClick(seat.id)}
+                            disabled={isOccupied}
+                            className={`seat mx-auto ${
+                              isOccupied
+                                ? 'seat-occupied'
+                                : isSelected
+                                ? 'seat-selected'
+                                : 'seat-available'
+                            }`}
+                            aria-label={`Seat ${seat.id}`}
+                          >
+                            {seat.column}
+                          </button>
+                        );
+                      })}
+                      <span className="text-center text-xs font-bold text-neutral-600">{row.label}</span>
                     </div>
                   ))}
               </div>
                <div className="flex flex-wrap justify-center gap-5 text-sm text-neutral-400">
-                  <div className="flex items-center space-x-2"><div className="seat seat-available h-4 w-4"></div><span>Regular</span></div>
-                  <div className="flex items-center space-x-2"><div className="seat seat-premiere h-4 w-4"></div><span>Premiere</span></div>
+                  <div className="flex items-center space-x-2"><div className="seat seat-available h-4 w-4"></div><span>Available</span></div>
                   <div className="flex items-center space-x-2"><div className="seat seat-selected h-4 w-4"></div><span>Selected</span></div>
-                  <div className="flex items-center space-x-2"><div className="seat seat-occupied h-4 w-4"></div><span>Occupied</span></div>
+                  <div className="flex items-center space-x-2"><div className="seat seat-occupied h-4 w-4"></div><span>Booked</span></div>
               </div>
             </div>
 
@@ -292,7 +308,13 @@ export default function BookingPage() {
                 <p className="section-eyebrow mb-2">Order</p>
                 <h3 className="text-xl font-semibold mb-4 text-white">Booking Summary</h3>
                 <div className="mb-5 rounded-xl bg-white/[0.03] p-4 text-sm border border-white/[0.06]">
-                  <div className="mb-2 flex justify-between"><span className="text-neutral-400">Studio</span><span className="font-semibold text-white">{selectedShowtime.hall.hall_name}</span></div>
+                  {cinemaInfo && (
+                    <>
+                      <div className="mb-2 flex justify-between"><span className="text-neutral-400">Cinema</span><span className="font-semibold text-white">{cinemaInfo.name}</span></div>
+                      <div className="mb-2 flex justify-between"><span className="text-neutral-400">City</span><span className="font-semibold text-white">{cinemaInfo.city}</span></div>
+                    </>
+                  )}
+                  <div className="mb-2 flex justify-between"><span className="text-neutral-400">Studio</span><span className="font-semibold text-white">{selectedShowtime.hall?.hall_name || 'TBA'}</span></div>
                   <div className="mb-2 flex justify-between"><span className="text-neutral-400">Date</span><span className="font-semibold text-white">{new Date(selectedShowtime.show_date).toLocaleDateString()}</span></div>
                   <div className="flex justify-between"><span className="text-neutral-400">Time</span><span className="font-semibold text-white">{selectedShowtime.start_time}</span></div>
                 </div>

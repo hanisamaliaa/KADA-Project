@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Clock, Star, RefreshCw } from 'lucide-react';
+import { Clock, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import useRecommendation from '../hooks/useRecommendation';
 
@@ -20,8 +20,6 @@ function SkeletonCard() {
 }
 
 function RecommendationCard({ movie }) {
-  const rating = typeof movie.rating === 'string' ? parseFloat(movie.rating) : movie.rating;
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
@@ -31,18 +29,21 @@ function RecommendationCard({ movie }) {
     >
       <div className="relative aspect-[2/3] overflow-hidden bg-white/[0.02]">
         <img
+          key={`poster-${movie._id}-${movie.updatedAt}`}
           src={movie.poster_url || 'https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop'}
           alt={movie.title}
           className="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-110"
           loading="lazy"
+          onError={(e) => {
+            e.target.src = 'https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop';
+          }}
         />
 
         <div className="absolute inset-0 bg-gradient-to-t from-dark-950 via-dark-950/40 to-transparent opacity-85" />
 
-        {rating > 0 && (
+        {movie.rating && (
           <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-lg bg-dark-950/80 backdrop-blur-xl px-2.5 py-1.5 text-xs font-semibold text-amber-400 border border-amber-500/25">
-            <Star className="h-3.5 w-3.5 fill-current" />
-            {rating.toFixed(1)}
+            {movie.rating}
           </div>
         )}
       </div>
@@ -60,7 +61,9 @@ function RecommendationCard({ movie }) {
         </div>
 
         <div className="mb-6 flex flex-wrap gap-1.5">
-          <span className="rounded-lg bg-white/[0.05] px-2.5 py-1 text-[10px] font-medium text-neutral-300 border border-white/[0.08]">{movie.genre}</span>
+          {(movie.genre || []).slice(0, 2).map((g) => (
+            <span key={g} className="rounded-lg bg-white/[0.05] px-2.5 py-1 text-[10px] font-medium text-neutral-300 border border-white/[0.08]">{g}</span>
+          ))}
         </div>
 
         <div className="mt-auto">

@@ -4,15 +4,16 @@ import { useForm, SubmitHandler } from 'react-hook-form';
 import { Plus, Edit, Trash2, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import ErrorMessage from '@/components/ErrorMessage';
 import toast from 'react-hot-toast';
 import { movieService } from '@/services/movieService';
 import { showtimeService } from '@/services/showtimeService';
+import { cinemaService } from '@/services/cinemaService';
 import { bookingService } from '@/services/bookingService';
-import type { IHall, IMovie, IShowtime, ShowtimeInput } from '@/types';
+import type { IHall, IMovie, IShowtime, ICinema, ShowtimeInput } from '@/types';
 
 type ShowtimeFormData = {
   movie_id: string;
+  cinema_id: string;
   hall_id: string;
   show_date: string;
   start_time: string;
@@ -30,53 +31,79 @@ const modalOverlayVariants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { duration: 0.2 } },
   exit: { opacity: 0, transition: { duration: 0.15 } },
-}
+} as const;
 
 const modalContentVariants = {
   hidden: { opacity: 0, scale: 0.95, y: 12 },
   visible: { opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 400, damping: 30 } },
   exit: { opacity: 0, scale: 0.95, y: 12, transition: { duration: 0.15 } },
-}
+} as const;
 
 const ShowtimeForm: React.FC<ShowtimeFormProps> = ({ showtimeToEdit, onClose, onSave }) => {
   const [movies, setMovies] = useState<IMovie[]>([]);
+  const [cinemas, setCinemas] = useState<ICinema[]>([]);
   const [halls, setHalls] = useState<IHall[]>([]);
+  const [selectedCinemaId, setSelectedCinemaId] = useState('');
 
   const {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ShowtimeFormData>();
+
+  const watchCinemaId = watch('cinema_id');
 
   useEffect(() => {
     const fetchPrerequisites = async () => {
       try {
-        const [moviesData, hallsData] = await Promise.all([
+        const [moviesData, cinemasData] = await Promise.all([
           movieService.getMovies(),
-          showtimeService.getHalls(),
+          cinemaService.getCinemas(),
         ]);
         setMovies(moviesData);
-        setHalls(hallsData);
+        setCinemas(cinemasData);
       } catch {
-        toast.error('Could not load movies or halls.');
+        toast.error('Could not load movies or cinemas.');
       }
     };
     fetchPrerequisites();
   }, []);
 
   useEffect(() => {
+    if (watchCinemaId && watchCinemaId !== selectedCinemaId) {
+      setSelectedCinemaId(watchCinemaId);
+      setValue('hall_id', '');
+      if (watchCinemaId) {
+        showtimeService.getHalls(watchCinemaId).then(setHalls).catch(() => setHalls([]));
+      } else {
+        setHalls([]);
+      }
+    }
+  }, [watchCinemaId, selectedCinemaId, setValue]);
+
+  useEffect(() => {
     if (showtimeToEdit) {
+      const cinemaId = showtimeToEdit.cinema?._id || '';
+      setSelectedCinemaId(cinemaId);
       reset({
         movie_id: showtimeToEdit.movie._id,
+        cinema_id: cinemaId,
         hall_id: showtimeToEdit.hall._id,
         show_date: new Date(showtimeToEdit.show_date).toISOString().split('T')[0],
         start_time: showtimeToEdit.start_time,
         end_time: showtimeToEdit.end_time,
         ticket_price: showtimeToEdit.ticket_price,
       });
+      if (cinemaId) {
+        showtimeService.getHalls(cinemaId).then(setHalls).catch(() => setHalls([]));
+      }
     } else {
       reset();
+      setHalls([]);
+      setSelectedCinemaId('');
     }
   }, [showtimeToEdit, reset]);
 
@@ -84,6 +111,7 @@ const ShowtimeForm: React.FC<ShowtimeFormProps> = ({ showtimeToEdit, onClose, on
     try {
       const dataToSubmit: ShowtimeInput = {
         movie: formData.movie_id,
+        cinema: formData.cinema_id,
         hall: formData.hall_id,
         show_date: formData.show_date,
         start_time: formData.start_time,
@@ -99,6 +127,7 @@ const ShowtimeForm: React.FC<ShowtimeFormProps> = ({ showtimeToEdit, onClose, on
 
       toast.success(`Showtime ${showtimeToEdit ? 'updated' : 'added'} successfully!`);
       onSave();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       toast.error(error.message);
     }
@@ -124,6 +153,30 @@ const ShowtimeForm: React.FC<ShowtimeFormProps> = ({ showtimeToEdit, onClose, on
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-1">Cinema</label>
+              <select {...register('cinema_id', { required: 'Cinema is required' })} className="input">
+                <option value="">Select a cinema</option>
+                {cinemas.map(cinema => <option key={cinema._id} value={cinema._id}>{cinema.name} - {cinema.city}</option>)}
+              </select>
+              {errors.cinema_id && <p className="text-red-400 text-sm mt-1">{errors.cinema_id.message}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-1">Hall</label>
+              <select
+                {...register('hall_id', { required: 'Hall is required' })}
+                className="input"
+                disabled={!watchCinemaId}
+              >
+                <option value="">
+                  {!watchCinemaId ? 'Select cinema first' : halls.length === 0 ? 'No halls available' : 'Select a hall'}
+                </option>
+                {halls.map(hall => <option key={hall._id} value={hall._id}>{hall.hall_name}</option>)}
+              </select>
+              {errors.hall_id && <p className="text-red-400 text-sm mt-1">{errors.hall_id.message}</p>}
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
               <label className="block text-sm font-medium text-neutral-300 mb-1">Movie</label>
               <select {...register('movie_id', { required: 'Movie is required' })} className="input">
                 <option value="">Select a movie</option>
@@ -132,27 +185,17 @@ const ShowtimeForm: React.FC<ShowtimeFormProps> = ({ showtimeToEdit, onClose, on
               {errors.movie_id && <p className="text-red-400 text-sm mt-1">{errors.movie_id.message}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1">Hall</label>
-              <select {...register('hall_id', { required: 'Hall is required' })} className="input">
-                <option value="">Select a hall</option>
-                {halls.map(hall => <option key={hall._id} value={hall._id}>{hall.hall_name}</option>)}
-              </select>
-              {errors.hall_id && <p className="text-red-400 text-sm mt-1">{errors.hall_id.message}</p>}
+              <label className="block text-sm font-medium text-neutral-300 mb-1">Ticket Price (IDR)</label>
+              <input type="number" {...register('ticket_price', { required: 'Price is required', min: { value: 1, message: 'Price must be greater than 0' } })} className="input" />
+              {errors.ticket_price && <p className="text-red-400 text-sm mt-1">{errors.ticket_price.message}</p>}
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-neutral-300 mb-1">Show Date</label>
               <input type="date" {...register('show_date', { required: 'Show date is required' })} className="input" />
               {errors.show_date && <p className="text-red-400 text-sm mt-1">{errors.show_date.message}</p>}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1">Ticket Price (IDR)</label>
-              <input type="number" {...register('ticket_price', { required: 'Price is required' })} className="input" />
-              {errors.ticket_price && <p className="text-red-400 text-sm mt-1">{errors.ticket_price.message}</p>}
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-neutral-300 mb-1">Start Time</label>
               <input type="time" {...register('start_time', { required: 'Start time is required' })} className="input" />
@@ -225,7 +268,7 @@ const DeleteConfirmationModal: React.FC<DeleteModalProps> = ({ showtime, onClose
 export default function AdminShowtimesPage() {
   const [showtimes, setShowtimes] = useState<IShowtime[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [, setError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingShowtime, setEditingShowtime] = useState<IShowtime | null>(null);
   const [showtimeToDelete, setShowtimeToDelete] = useState<IShowtime | null>(null);
@@ -245,7 +288,7 @@ export default function AdminShowtimesPage() {
       const data = await showtimeService.getShowtimes();
       setShowtimes(data || []);
       const counts = await Promise.all(
-        data.map(async (showtime) => [showtime._id, (await bookingService.getSeatAvailability(showtime._id)).length] as const),
+        data.map(async (showtime: IShowtime) => [showtime._id, (await bookingService.getSeatAvailability(showtime._id)).length] as const),
       );
       setSeatCounts(Object.fromEntries(counts));
     } catch {
@@ -283,6 +326,7 @@ export default function AdminShowtimesPage() {
       await showtimeService.deleteShowtime(showtimeId);
       toast.success('Showtime deleted successfully');
       fetchShowtimes();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete showtime');
     } finally {
@@ -307,12 +351,12 @@ export default function AdminShowtimesPage() {
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.04 } },
-  };
+  } as const;
 
   const rowVariants = {
     hidden: { opacity: 0, y: 8 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.25 } },
-  };
+  } as const;
 
   return (
     <div className="space-y-6">
@@ -392,6 +436,7 @@ export default function AdminShowtimesPage() {
               <thead className="bg-dark-800/60">
                 <tr>
                   <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Movie</th>
+                  <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Cinema</th>
                   <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Hall</th>
                   <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Date & Time</th>
                   <th className="px-6 py-3.5 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Price</th>
@@ -410,8 +455,12 @@ export default function AdminShowtimesPage() {
                       <div className="text-sm font-medium text-white max-w-xs truncate">{showtime.movie?.title}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-neutral-300">{showtime.cinema?.name || '-'}</div>
+                      <div className="text-xs text-neutral-500">{showtime.cinema?.city || ''}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <span className="cinema-badge bg-blue-500/15 text-blue-400">
-                        {showtime.hall?.hall_name}
+                        {showtime.hall?.hall_name || '-'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-300">
@@ -422,7 +471,7 @@ export default function AdminShowtimesPage() {
                       IDR {showtime.ticket_price.toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-300">
-                      {seatCounts[showtime._id] || 0} booked / {showtime.hall.total_seats - (seatCounts[showtime._id] || 0)} available
+                      {seatCounts[showtime._id] || 0} booked / {(showtime.hall?.total_seats || 80) - (seatCounts[showtime._id] || 0)} available
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center space-x-2">

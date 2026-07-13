@@ -133,7 +133,11 @@ export default function BookingsPage() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm text-neutral-400">
                         <div className="flex items-center space-x-1.5">
                           <MapPin className="h-4 w-4 text-primary-400" />
-                          <span>{booking.showtime?.hall?.hall_name}</span>
+                          <span>{booking.showtime?.cinema?.name || 'N/A'}{booking.showtime?.cinema?.city ? ` - ${booking.showtime.cinema.city}` : ''}</span>
+                        </div>
+                        <div className="flex items-center space-x-1.5">
+                          <MapPin className="h-4 w-4 text-accent-500" />
+                          <span>{booking.showtime?.hall?.hall_name || 'N/A'}</span>
                         </div>
                         <div className="flex items-center space-x-1.5">
                           <Calendar className="h-4 w-4 text-primary-400" />

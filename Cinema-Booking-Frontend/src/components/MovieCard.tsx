@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Calendar, Clock, Star, Ticket, Play, ChevronRight } from 'lucide-react';
+import { Calendar, Clock, Ticket, Play, ChevronRight } from 'lucide-react';
 import type { IMovie } from '@/types';
 import { motion } from 'framer-motion';
 
@@ -21,10 +21,14 @@ export default function MovieCard({ movie }: MovieCardProps) {
       <div className="relative aspect-[2/3] overflow-hidden bg-white/[0.02]">
         {/* Poster Image */}
         <img
+          key={`poster-${movie._id}-${movie.updatedAt}`}
           src={movie.poster_url || 'https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop'}
           alt={movie.title}
           className="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-110"
           loading="lazy"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = 'https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop';
+          }}
         />
         
         {/* Gradient Overlay */}
@@ -46,8 +50,7 @@ export default function MovieCard({ movie }: MovieCardProps) {
         {/* Rating */}
         {!isComingSoon && movie.rating ? (
           <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-lg bg-dark-950/80 backdrop-blur-xl px-2.5 py-1.5 text-xs font-semibold text-amber-400 border border-amber-500/25">
-            <Star className="h-3.5 w-3.5 fill-current" />
-            {movie.rating.toFixed(1)}
+            {movie.rating}
           </div>
         ) : null}
 
@@ -81,7 +84,9 @@ export default function MovieCard({ movie }: MovieCardProps) {
         </div>
         
         <div className="mb-6 flex flex-wrap gap-1.5">
-          <span className="rounded-lg bg-white/[0.05] px-2.5 py-1 text-[10px] font-medium text-neutral-300 border border-white/[0.08]">{movie.genre}</span>
+          {(movie.genre || []).slice(0, 3).map((g) => (
+            <span key={g} className="rounded-lg bg-white/[0.05] px-2.5 py-1 text-[10px] font-medium text-neutral-300 border border-white/[0.08]">{g}</span>
+          ))}
           {isComingSoon && (
             <span className="rounded-lg bg-accent-500/10 px-2.5 py-1 text-[10px] font-medium text-accent-400 border border-accent-500/20">
               {new Date(movie.release_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}

@@ -1,16 +1,29 @@
-import api from './api';
-import { IBooking } from '@/types';
+import api from "./api";
+import { IBooking } from "@/types";
 
 interface BackendBooking {
   _id: string;
   userId: { _id: string; name: string; email: string };
-  movieId: { _id: string; title: string };
-  showtimeId: { _id: string; date: string; time: string; studio: string; price: number };
+  movieId: { _id: string; title: string; poster?: string };
+  showtimeId: {
+    _id: string;
+    date: string;
+    time: string;
+    endTime?: string;
+    studio: string;
+    price: number;
+    cinema?: { _id: string; name: string; city: string };
+    hall?: { _id: string; name: string; rows: number; columns: number; totalSeats: number };
+  };
   seats: string[];
   totalPrice: number;
-  status: 'confirmed' | 'cancelled';
+  status: "confirmed" | "cancelled";
   createdAt: string;
 }
+
+const DEFAULT_POSTER =
+  "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop";
+const isUrl = (s: string) => /^https?:\/\//i.test(s);
 
 const mapAdminBooking = (b: BackendBooking): IBooking => ({
   _id: b._id,
@@ -19,33 +32,53 @@ const mapAdminBooking = (b: BackendBooking): IBooking => ({
     _id: b.userId._id,
     email: b.userId.email,
     fullName: b.userId.name,
-    role: 'user',
+    role: "user",
   },
   showtime: {
     _id: b.showtimeId._id,
     movie: {
       _id: b.movieId._id,
       title: b.movieId.title,
-      genre: '',
+      genre: [],
       duration: 0,
-      poster_url: '',
-      release_date: '',
-      status: 'now_showing',
-      createdAt: '',
-      updatedAt: '',
+      poster_url: isUrl(b.movieId.poster || "") ? b.movieId.poster! : DEFAULT_POSTER,
+      description: "",
+      release_date: "",
+      status: "now_showing",
+      createdAt: "",
+      updatedAt: "",
     },
-    hall: {
-      _id: b.showtimeId._id,
-      hall_name: b.showtimeId.studio,
-      total_seats: 80,
-      layout_rows: 8,
-      layout_columns: 10,
-      createdAt: '',
-      updatedAt: '',
-    },
+    hall: b.showtimeId.hall
+      ? {
+          _id: b.showtimeId.hall._id,
+          hall_name: b.showtimeId.hall.name,
+          total_seats: b.showtimeId.hall.totalSeats,
+          layout_rows: b.showtimeId.hall.rows,
+          layout_columns: b.showtimeId.hall.columns,
+          createdAt: "",
+          updatedAt: "",
+        }
+      : {
+          _id: b.showtimeId._id,
+          hall_name: b.showtimeId.studio,
+          total_seats: 80,
+          layout_rows: 8,
+          layout_columns: 10,
+          createdAt: "",
+          updatedAt: "",
+        },
+    cinema: b.showtimeId.cinema
+      ? {
+          _id: b.showtimeId.cinema._id,
+          name: b.showtimeId.cinema.name,
+          city: b.showtimeId.cinema.city,
+          createdAt: "",
+          updatedAt: "",
+        }
+      : undefined,
     show_date: b.showtimeId.date,
     start_time: b.showtimeId.time,
-    end_time: '',
+    end_time: b.showtimeId.endTime || "",
     ticket_price: b.showtimeId.price,
   },
   booking_date: b.createdAt,
@@ -58,14 +91,15 @@ const mapAdminBooking = (b: BackendBooking): IBooking => ({
 export const adminService = {
   async getDashboardStats() {
     try {
-      const res = await api.get('/admin/stats');
+      const res = await api.get("/admin/stats");
       const d = res.data.data;
       return {
         totalMovies: d.totalMovies || 0,
-        totalHalls: 0,
+        totalHalls: d.totalHalls || 0,
         totalShowtimes: d.totalShowtimes || 0,
         totalBookings: d.totalBookings || 0,
         totalUsers: d.totalUsers || 0,
+        totalCinemas: d.totalCinemas || 0,
         totalRevenue: 0,
         recentBookings: [],
         popularMovies: [],
@@ -78,6 +112,7 @@ export const adminService = {
         totalShowtimes: 0,
         totalBookings: 0,
         totalUsers: 0,
+        totalCinemas: 0,
         totalRevenue: 0,
         recentBookings: [],
         popularMovies: [],
@@ -86,12 +121,19 @@ export const adminService = {
     }
   },
 
-  async getAllBookings(filters: { status?: string; search?: string; movieId?: string; date?: string } = {}) {
+  async getAllBookings(
+    filters: {
+      status?: string;
+      search?: string;
+      movieId?: string;
+      date?: string;
+    } = {},
+  ) {
     try {
-      const res = await api.get('/admin/bookings');
+      const res = await api.get("/admin/bookings");
       let bookings: IBooking[] = (res.data.data || []).map(mapAdminBooking);
 
-      if (filters.status && filters.status !== 'all') {
+      if (filters.status && filters.status !== "all") {
         bookings = bookings.filter((b) => b.status === filters.status);
       }
       if (filters.search) {
@@ -114,8 +156,11 @@ export const adminService = {
     return mapAdminBooking(res.data.data);
   },
 
-  async updateBookingStatus(id: string, status: 'pending' | 'confirmed' | 'cancelled') {
-    if (status === 'cancelled') {
+  async updateBookingStatus(
+    id: string,
+    status: "pending" | "confirmed" | "cancelled",
+  ) {
+    if (status === "cancelled") {
       await api.delete(`/bookings/${id}`);
     }
     return { _id: id, status };

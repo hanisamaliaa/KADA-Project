@@ -1,5 +1,6 @@
 const Booking = require("../models/Booking");
 const Showtime = require("../models/Showtime");
+const Hall = require("../models/Hall");
 const asyncHandler = require("../utils/asyncHandler");
 const AppError = require("../utils/AppError");
 
@@ -22,7 +23,10 @@ const createBooking = asyncHandler(async (req, res) => {
   const uniqueSeats = [...new Set(seats)];
 
   // STEP 2 — load showtime
-  const showtime = await Showtime.findById(showtimeId);
+  const showtime = await Showtime.findById(showtimeId).populate({
+    path: "hall",
+    select: "rows columns totalSeats",
+  });
   if (!showtime) throw new AppError("Showtime not found.", 404);
 
   // Cannot book a showtime that has already started.
@@ -31,14 +35,31 @@ const createBooking = asyncHandler(async (req, res) => {
     throw new AppError("Cannot book a past showtime.", 400);
   }
 
-  // STEP 3 — price is computed on the server
+  // STEP 3 — validate seats against hall layout
+  const hall = showtime.hall;
+  if (hall) {
+    const validSeats = new Set();
+    const rowLabels = "ABCDEFGHIJ";
+    for (let r = 0; r < Math.min(hall.rows, 10); r++) {
+      for (let c = 1; c <= hall.columns; c++) {
+        validSeats.add(`${rowLabels[r]}${c}`);
+      }
+    }
+    for (const seat of uniqueSeats) {
+      if (!validSeats.has(seat)) {
+        throw new AppError(`Seat ${seat} is not valid for this hall layout.`, 400);
+      }
+    }
+  }
+
+  // STEP 4 — price is computed on the server
   const totalPrice = showtime.price * uniqueSeats.length;
 
   // Atomic reserve: only succeeds if none of these seats are already booked.
   const updatedShowtime = await Showtime.findOneAndUpdate(
     { _id: showtimeId, bookedSeats: { $nin: uniqueSeats } },
     { $addToSet: { bookedSeats: { $each: uniqueSeats } } },
-    { new: true }
+    { returnDocument: "after" }
   );
 
   // null → another user grabbed a seat first → conflict
@@ -53,7 +74,7 @@ const createBooking = asyncHandler(async (req, res) => {
     });
   }
 
-  // STEP 4 — persist booking (seats already reserved above)
+  // STEP 5 — persist booking (seats already reserved above)
   let booking;
   try {
     booking = await Booking.create({
@@ -71,7 +92,7 @@ const createBooking = asyncHandler(async (req, res) => {
     throw err; // forwarded to the central error handler → 500
   }
 
-  // STEP 5 — response
+  // STEP 6 — response
   res.status(201).json({ success: true, data: booking });
 });
 
@@ -79,7 +100,13 @@ const createBooking = asyncHandler(async (req, res) => {
 const getMyBookings = asyncHandler(async (req, res) => {
   const bookings = await Booking.find({ userId: req.user.userId })
     .populate("movieId")
-    .populate("showtimeId");
+    .populate({
+      path: "showtimeId",
+      populate: [
+        { path: "cinema", select: "name city" },
+        { path: "hall", select: "name rows columns totalSeats" },
+      ],
+    });
   res.status(200).json({ success: true, data: bookings });
 });
 
@@ -87,7 +114,13 @@ const getMyBookings = asyncHandler(async (req, res) => {
 const getBookingById = asyncHandler(async (req, res) => {
   const booking = await Booking.findById(req.params.id)
     .populate("movieId")
-    .populate("showtimeId");
+    .populate({
+      path: "showtimeId",
+      populate: [
+        { path: "cinema", select: "name city" },
+        { path: "hall", select: "name rows columns totalSeats" },
+      ],
+    });
   if (!booking) throw new AppError("Booking not found.", 404);
 
   const isOwner = booking.userId.toString() === req.user.userId;
