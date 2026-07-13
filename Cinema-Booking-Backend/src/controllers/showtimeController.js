@@ -66,7 +66,7 @@ const updateShowtime = asyncHandler(async (req, res) => {
   }
 
   const showtime = await Showtime.findByIdAndUpdate(req.params.id, req.body, {
-    new: true,
+    returnDocument: "after",
     runValidators: true,
   });
   if (!showtime) throw new AppError("Showtime not found", 404);

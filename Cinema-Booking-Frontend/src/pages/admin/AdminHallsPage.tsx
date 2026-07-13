@@ -3,7 +3,6 @@ import { useForm, SubmitHandler } from 'react-hook-form';
 import { Plus, Edit, Trash2, Building, Armchair, LayoutGrid } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LoadingSpinner, { Skeleton } from '@/components/LoadingSpinner';
-import ErrorMessage from '@/components/ErrorMessage';
 import toast from 'react-hot-toast';
 import { showtimeService } from '@/services/showtimeService';
 
@@ -29,13 +28,13 @@ const modalOverlayVariants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { duration: 0.2 } },
   exit: { opacity: 0, transition: { duration: 0.15 } },
-}
+} as const
 
 const modalContentVariants = {
   hidden: { opacity: 0, scale: 0.95, y: 12 },
   visible: { opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 400, damping: 30 } },
   exit: { opacity: 0, scale: 0.95, y: 12, transition: { duration: 0.15 } },
-}
+} as const
 
 const hallColorPalette = [
   { bg: 'bg-blue-500/15', text: 'text-blue-400', dot: 'bg-blue-400/30 group-hover:bg-blue-400/70' },
@@ -105,6 +104,7 @@ const HallForm: React.FC<HallFormProps> = ({ hallToEdit, onClose, onSave }) => {
 
       toast.success(`Hall ${hallToEdit ? 'updated' : 'added'} successfully!`);
       onSave();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       toast.error(error.message);
       console.error('Error saving hall:', error);
@@ -216,7 +216,7 @@ const DeleteConfirmationModal: React.FC<DeleteModalProps> = ({ hall, onClose, on
 export default function AdminHallsPage() {
   const [halls, setHalls] = useState<IHall[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [, setError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingHall, setEditingHall] = useState<IHall | null>(null);
   const [hallToDelete, setHallToDelete] = useState<IHall | null>(null);
@@ -263,6 +263,7 @@ export default function AdminHallsPage() {
       await showtimeService.deleteHall(hallId);
       toast.success('Hall deleted successfully');
       fetchHalls();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete hall');
     } finally {
@@ -314,12 +315,12 @@ export default function AdminHallsPage() {
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
-  };
+  } as const;
 
   const cardVariants = {
     hidden: { opacity: 0, y: 16 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
-  };
+  } as const;
 
   return (
     <div className="space-y-6">

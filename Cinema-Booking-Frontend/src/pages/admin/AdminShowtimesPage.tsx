@@ -4,7 +4,6 @@ import { useForm, SubmitHandler } from 'react-hook-form';
 import { Plus, Edit, Trash2, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import ErrorMessage from '@/components/ErrorMessage';
 import toast from 'react-hot-toast';
 import { movieService } from '@/services/movieService';
 import { showtimeService } from '@/services/showtimeService';
@@ -30,13 +29,13 @@ const modalOverlayVariants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { duration: 0.2 } },
   exit: { opacity: 0, transition: { duration: 0.15 } },
-}
+} as const
 
 const modalContentVariants = {
   hidden: { opacity: 0, scale: 0.95, y: 12 },
   visible: { opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 400, damping: 30 } },
   exit: { opacity: 0, scale: 0.95, y: 12, transition: { duration: 0.15 } },
-}
+} as const
 
 const ShowtimeForm: React.FC<ShowtimeFormProps> = ({ showtimeToEdit, onClose, onSave }) => {
   const [movies, setMovies] = useState<IMovie[]>([]);
@@ -99,6 +98,7 @@ const ShowtimeForm: React.FC<ShowtimeFormProps> = ({ showtimeToEdit, onClose, on
 
       toast.success(`Showtime ${showtimeToEdit ? 'updated' : 'added'} successfully!`);
       onSave();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       toast.error(error.message);
     }
@@ -225,7 +225,7 @@ const DeleteConfirmationModal: React.FC<DeleteModalProps> = ({ showtime, onClose
 export default function AdminShowtimesPage() {
   const [showtimes, setShowtimes] = useState<IShowtime[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [, setError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingShowtime, setEditingShowtime] = useState<IShowtime | null>(null);
   const [showtimeToDelete, setShowtimeToDelete] = useState<IShowtime | null>(null);
@@ -245,7 +245,7 @@ export default function AdminShowtimesPage() {
       const data = await showtimeService.getShowtimes();
       setShowtimes(data || []);
       const counts = await Promise.all(
-        data.map(async (showtime) => [showtime._id, (await bookingService.getSeatAvailability(showtime._id)).length] as const),
+        data.map(async (showtime: IShowtime) => [showtime._id, (await bookingService.getSeatAvailability(showtime._id)).length] as const),
       );
       setSeatCounts(Object.fromEntries(counts));
     } catch {
@@ -283,6 +283,7 @@ export default function AdminShowtimesPage() {
       await showtimeService.deleteShowtime(showtimeId);
       toast.success('Showtime deleted successfully');
       fetchShowtimes();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete showtime');
     } finally {
@@ -307,12 +308,12 @@ export default function AdminShowtimesPage() {
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.04 } },
-  };
+  } as const;
 
   const rowVariants = {
     hidden: { opacity: 0, y: 8 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.25 } },
-  };
+  } as const;
 
   return (
     <div className="space-y-6">

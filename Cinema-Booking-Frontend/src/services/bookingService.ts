@@ -96,7 +96,7 @@ export const bookingService = {
     return booking;
   },
 
-  async getMyBookings(_userId: string) {
+  async getMyBookings(_userId: string) { // eslint-disable-line @typescript-eslint/no-unused-vars
     const res = await api.get("/bookings/me");
     return (res.data.data || []).map(mapBooking);
   },

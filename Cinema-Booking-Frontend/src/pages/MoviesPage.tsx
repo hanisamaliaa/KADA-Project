@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Search, Filter, SlidersHorizontal, ChevronRight, Film } from 'lucide-react';
+import { Search, Filter, Film } from 'lucide-react';
 import { IMovie } from '@/types';
 import MovieCard from '@/components/MovieCard';
 import { MovieCardSkeleton } from '@/components/LoadingSpinner';

@@ -38,7 +38,7 @@ const createBooking = asyncHandler(async (req, res) => {
   const updatedShowtime = await Showtime.findOneAndUpdate(
     { _id: showtimeId, bookedSeats: { $nin: uniqueSeats } },
     { $addToSet: { bookedSeats: { $each: uniqueSeats } } },
-    { new: true }
+    { returnDocument: "after" }
   );
 
   // null → another user grabbed a seat first → conflict

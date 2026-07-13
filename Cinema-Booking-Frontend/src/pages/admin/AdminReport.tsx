@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Film, Building, RefreshCcw, BarChart3, Wallet, PieChart as PieChartIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/LoadingSpinner';
-import toast from 'react-hot-toast';
+
 import {
   BarChart,
   Bar,
@@ -26,7 +26,7 @@ export default function AdminReportsPage() {
   const [bookings, setBookings] = useState<IBooking[]>([]);
   const [weeklyRevenue, setWeeklyRevenue] = useState<{ date: string; revenue: number }[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [, setError] = useState('');
   const [activeStatusIndex, setActiveStatusIndex] = useState<number | null>(null);
 
   useEffect(() => {
@@ -135,12 +135,12 @@ export default function AdminReportsPage() {
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
-  };
+  } as const;
 
   const itemVariants = {
     hidden: { opacity: 0, y: 16 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
-  };
+  } as const;
 
   return (
     <motion.div

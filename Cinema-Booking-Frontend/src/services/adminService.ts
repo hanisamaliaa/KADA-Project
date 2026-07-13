@@ -35,6 +35,7 @@ const mapAdminBooking = (b: BackendBooking): IBooking => ({
       genre: "",
       duration: 0,
       poster_url: "",
+      description: "",
       release_date: "",
       status: "now_showing",
       createdAt: "",

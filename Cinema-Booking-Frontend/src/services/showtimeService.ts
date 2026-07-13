@@ -126,5 +126,6 @@ export const showtimeService = {
     return { _id: id, ...data, createdAt: "", updatedAt: "" } as IHall;
   },
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async deleteHall(_id: string) {},
 };

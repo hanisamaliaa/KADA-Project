@@ -1,16 +1,14 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { Calendar, Clock, MapPin, Users, Ticket, ArrowLeft, User, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { IBooking } from '@/types';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorMessage from '@/components/ErrorMessage';
-import toast from 'react-hot-toast';
 import { adminService } from '@/services/adminService';
 
 export default function AdminBookingDetailsPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const [booking, setBooking] = useState<IBooking | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -74,12 +72,12 @@ export default function AdminBookingDetailsPage() {
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.1 } },
-  };
+  } as const;
 
   const itemVariants = {
     hidden: { opacity: 0, y: 16 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
-  };
+  } as const;
 
   return (
     <motion.div

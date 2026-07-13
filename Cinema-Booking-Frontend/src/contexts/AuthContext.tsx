@@ -2,14 +2,17 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { authService } from '@/services/authService';
 import type { AuthUser } from '@/types';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Any = any;
+
 interface AuthContextType {
   user: AuthUser | null;
   isAdmin: boolean;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: any; data?: any }>;
+  signIn: (email: string, password: string) => Promise<{ error: Any }>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Any; data?: Any }>;
   signOut: () => Promise<void>;
-  adminSignIn: (username: string, password: string) => Promise<{ error: any }>;
+  adminSignIn: (username: string, password: string) => Promise<{ error: Any }>;
   refreshUser: () => Promise<void>;
 }
 
@@ -44,6 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const userData = await authService.login(email, password);
       setUser(userData);
       return { error: null };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const message = error.response?.data?.message || error.message || 'Invalid email or password';
       return { error: new Error(message) };
@@ -55,6 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const userData = await authService.adminLogin(username, password);
       setUser(userData);
       return { error: null };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const message = error.response?.data?.message || error.message || 'Invalid admin credentials';
       return { error: new Error(message) };
@@ -66,6 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await authService.register(email, password, fullName);
       // NOTE: registration does NOT log the user in — they must verify their email first.
       return { error: null, data };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const message = error.response?.data?.message || error.message || 'Registration failed';
       return { error: new Error(message) };

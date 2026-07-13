@@ -36,7 +36,7 @@ const modalContent = {
   hidden: { opacity: 0, scale: 0.9, y: 20 },
   visible: { opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 25 } },
   exit: { opacity: 0, scale: 0.9, y: 20 },
-}
+} as const
 
 type StrengthLevel = 'weak' | 'medium' | 'strong' | 'very-strong' | 'none'
 
@@ -105,6 +105,7 @@ export default function ChangePasswordPage() {
       })
       toast.success('Password updated successfully!')
       setSuccess(true)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const message = error.response?.data?.message || 'Something went wrong. Please try again.'
       toast.error(message)

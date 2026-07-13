@@ -38,6 +38,7 @@ export default function ResetPasswordPage() {
       await authService.resetPassword(email, data.code.trim(), data.newPassword, data.confirmPassword)
       toast.success('Password reset. Please sign in with your new password.')
       navigate('/login')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Invalid or expired code')
     } finally {

@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, MapPin, Settings, Ticket, User, ChevronDown, Film } from 'lucide-react';
+import { LogOut, MapPin, Settings, Ticket, User, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';

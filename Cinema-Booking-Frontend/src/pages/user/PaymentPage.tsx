@@ -79,7 +79,7 @@ export default function PaymentPage() {
     }
   };
 
-  const onSubmit = async (_data: PaymentForm) => {
+  const onSubmit = async () => {
     if (!bookingData || !user) return;
 
     setLoading(true);

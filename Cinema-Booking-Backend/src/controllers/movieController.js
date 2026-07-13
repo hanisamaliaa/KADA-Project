@@ -87,7 +87,7 @@ const updateMovie = asyncHandler(async (req, res) => {
   }
 
   const updated = await Movie.findByIdAndUpdate(req.params.id, req.body, {
-    new: true,
+    returnDocument: "after",
     runValidators: true,
   });
 

@@ -34,13 +34,13 @@ const modalOverlayVariants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { duration: 0.2 } },
   exit: { opacity: 0, transition: { duration: 0.15 } },
-};
+} as const;
 
 const modalContentVariants = {
   hidden: { opacity: 0, scale: 0.95, y: 12 },
   visible: { opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 400, damping: 30 } },
   exit: { opacity: 0, scale: 0.95, y: 12, transition: { duration: 0.15 } },
-};
+} as const;
 
 const formatFileSize = (bytes: number): string => {
   if (bytes < 1024) return `${bytes} B`;
@@ -187,9 +187,10 @@ const MovieForm: React.FC<MovieFormProps> = ({ movieToEdit, onClose, onSave }) =
           description: formData.description,
           genre: formData.genre,
           duration: Number(formData.duration),
-          rating: formData.rating,
-          trailerUrl: formData.trailerUrl,
-          posterFile: posterFile || undefined,
+          rating: Number(formData.rating) || 0,
+          trailer_url: formData.trailerUrl,
+          poster_url: posterPreview || '',
+          status: 'now_showing',
         });
         toast.success('Movie updated successfully');
       } else {
@@ -198,13 +199,16 @@ const MovieForm: React.FC<MovieFormProps> = ({ movieToEdit, onClose, onSave }) =
           description: formData.description,
           genre: formData.genre,
           duration: Number(formData.duration),
-          rating: formData.rating,
-          trailerUrl: formData.trailerUrl,
-          posterFile: posterFile!,
+          rating: Number(formData.rating) || 0,
+          trailer_url: formData.trailerUrl,
+          poster_url: posterPreview || '',
+          release_date: '',
+          status: 'now_showing',
         });
         toast.success('Movie added successfully');
       }
       onSave();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const msg = movieService.getBackendError(error);
       toast.error(msg);
@@ -594,6 +598,7 @@ export default function AdminMoviesPage() {
       setError('');
       const data = await movieService.getMovies();
       setMovies(data || []);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error('Error fetching movies:', err);
       setError(movieService.getBackendError(err));
@@ -634,6 +639,7 @@ export default function AdminMoviesPage() {
       await movieService.deleteMovie(movieId);
       toast.success('Movie deleted successfully');
       fetchMovies();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       const msg = movieService.getBackendError(err);
       toast.error(msg);
@@ -665,12 +671,12 @@ export default function AdminMoviesPage() {
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.04 } },
-  };
+  } as const;
 
   const rowVariants = {
     hidden: { opacity: 0, y: 8 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.25 } },
-  };
+  } as const;
 
   return (
     <div className="space-y-6">

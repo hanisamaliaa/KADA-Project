@@ -46,6 +46,24 @@ const mapMovie = (m: BackendMovie): IMovie => ({
   updatedAt: "",
 });
 
+const getBackendError = (error: unknown): string => {
+  if (
+    error &&
+    typeof error === 'object' &&
+    'response' in error &&
+    error.response &&
+    typeof error.response === 'object' &&
+    'data' in error.response &&
+    error.response.data &&
+    typeof error.response.data === 'object' &&
+    'message' in error.response.data
+  ) {
+    return String((error.response as { data: { message: string } }).data.message);
+  }
+  if (error instanceof Error) return error.message;
+  return 'An unexpected error occurred';
+};
+
 export const movieService = {
   async getMovies(filters: MovieFilters = {}) {
     const params: Record<string, string> = {};

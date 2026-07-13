@@ -14,6 +14,7 @@ interface DashboardStats {
   totalBookings: number;
   totalUsers: number;
   totalRevenue: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   recentBookings: any[];
   popularMovies: { title: string; seats: number }[];
   weeklyRevenue?: { date: string; revenue: number }[];
@@ -25,12 +26,12 @@ const containerVariants = {
     opacity: 1,
     transition: { staggerChildren: 0.06, delayChildren: 0.1 },
   },
-}
+} as const
 
 const itemVariants = {
   hidden: { opacity: 0, y: 16 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
-}
+} as const
 
 export default function AdminDashboardPage() {
   const navigate = useNavigate();

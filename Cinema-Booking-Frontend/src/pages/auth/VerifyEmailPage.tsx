@@ -31,6 +31,7 @@ export default function VerifyEmailPage() {
       await refreshUser() // verification set the auth cookies → we're logged in
       toast.success('Email verified! Welcome.')
       navigate('/')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Invalid or expired code')
     } finally {
