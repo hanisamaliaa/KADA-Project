@@ -1,81 +1,104 @@
-import type { BookingInput } from '@/types';
-import { mockUsers } from '@/data/mockUsers';
-import { delay, mockStore } from './mockStore';
+import api from './api';
+import type { BookingInput, IBooking } from '@/types';
+
+interface BackendBooking {
+  _id: string;
+  userId: { _id: string; name: string; email: string; role: string };
+  movieId: { _id: string; title: string; genre: string; duration: number; poster: string; rating: string; description: string; trailerUrl: string };
+  showtimeId: { _id: string; date: string; time: string; studio: string; price: number; bookedSeats: string[] };
+  seats: string[];
+  totalPrice: number;
+  status: 'confirmed' | 'cancelled';
+  createdAt: string;
+}
+
+const DEFAULT_POSTER = 'https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop';
+const isUrl = (s: string) => /^https?:\/\//i.test(s);
+
+const mapBooking = (b: BackendBooking): IBooking => ({
+  _id: b._id,
+  user: {
+    id: b.userId._id,
+    _id: b.userId._id,
+    email: b.userId.email,
+    fullName: b.userId.name,
+    role: (b.userId.role as 'user' | 'admin') || 'user',
+  },
+  showtime: {
+    _id: b.showtimeId._id,
+    movie: {
+      _id: b.movieId._id,
+      title: b.movieId.title,
+      genre: b.movieId.genre,
+      duration: b.movieId.duration,
+      poster_url: isUrl(b.movieId.poster) ? b.movieId.poster : DEFAULT_POSTER,
+      rating: parseFloat(b.movieId.rating) || 0,
+      description: b.movieId.description,
+      trailer_url: b.movieId.trailerUrl,
+      release_date: '',
+      status: 'now_showing',
+      createdAt: '',
+      updatedAt: '',
+    },
+    hall: {
+      _id: b.showtimeId._id,
+      hall_name: b.showtimeId.studio,
+      total_seats: 80,
+      layout_rows: 8,
+      layout_columns: 10,
+      createdAt: '',
+      updatedAt: '',
+    },
+    show_date: b.showtimeId.date,
+    start_time: b.showtimeId.time,
+    end_time: '',
+    ticket_price: b.showtimeId.price,
+  },
+  booking_date: b.createdAt,
+  total_seats: b.seats.length,
+  total_amount: b.totalPrice,
+  status: b.status,
+  selected_seats: b.seats,
+});
 
 const DEMO_CONFIRMED_BOOKING_KEY = 'cinematix_demo_confirmed_booking';
 
-const getUser = (id: string) => {
-  const user = mockUsers.find((item) => item.id === id || item._id === id);
-  if (!user) throw new Error('Demo user not found');
-  return user;
-};
-
-// Frontend seat state is only for UI demonstration.
-// Real availability and double-booking prevention must be enforced by the
-// student's backend and database.
-//
-// TODO STUDENT BACKEND INTEGRATION
-// Replace with booking endpoints such as GET /api/bookings/showtime/:id,
-// POST /api/bookings, GET /api/bookings/user/:userId, PATCH /api/bookings/:id.
 export const bookingService = {
   async getSeatAvailability(showtimeId: string) {
-    await delay();
-    return mockStore
-      .getBookings()
-      .filter((booking) => booking.showtime._id === showtimeId && booking.status !== 'cancelled')
-      .flatMap((booking) => booking.selected_seats);
+    const res = await api.get(`/showtimes/${showtimeId}/seats`);
+    return res.data.data.bookedSeats || [];
   },
 
   async createBooking(input: BookingInput) {
-    await delay();
-    const showtime = mockStore.getShowtimes().find((item) => item._id === input.showtime);
-    if (!showtime) throw new Error('Showtime not found');
-    const user = getUser(input.user);
-
-    // The frontend total is presentational. The student's backend must
-    // calculate authoritative totalPrice from trusted Showtime data.
-    const booking = {
-      _id: `booking-${Date.now()}`,
-      user,
-      showtime,
-      booking_date: new Date().toISOString(),
-      total_seats: input.total_seats,
-      total_amount: input.total_amount,
-      status: input.status || 'confirmed',
-      selected_seats: input.selected_seats,
-    };
-    mockStore.setBookings([booking, ...mockStore.getBookings()]);
+    const res = await api.post('/bookings', {
+      showtimeId: input.showtime,
+      seats: input.selected_seats,
+    });
+    const booking = mapBooking(res.data.data);
     sessionStorage.setItem(DEMO_CONFIRMED_BOOKING_KEY, booking._id);
     return booking;
   },
 
-  async getMyBookings(userId: string) {
-    await delay();
-    return mockStore.getBookings().filter((booking) => booking.user.id === userId || booking.user._id === userId);
+  async getMyBookings(_userId: string) {
+    const res = await api.get('/bookings/me');
+    return (res.data.data || []).map(mapBooking);
   },
 
   async getBookingById(id: string) {
-    await delay();
-    const booking = mockStore.getBookings().find((item) => item._id === id);
-    if (!booking) throw new Error('Booking not found');
-    return booking;
+    const res = await api.get(`/bookings/${id}`);
+    return mapBooking(res.data.data);
   },
 
   async cancelBooking(id: string) {
-    await delay();
-    const bookings = mockStore.getBookings();
-    const index = bookings.findIndex((booking) => booking._id === id);
-    if (index === -1) throw new Error('Booking not found');
-    bookings[index] = { ...bookings[index], status: 'cancelled' };
-    mockStore.setBookings(bookings);
-    return bookings[index];
+    const res = await api.delete(`/bookings/${id}`);
+    return res.data;
   },
 
   getConfirmedBookingId() {
-    return sessionStorage.getItem(DEMO_CONFIRMED_BOOKING_KEY);
+    return sessionStorage.getItem('cinematix_demo_confirmed_booking');
   },
 
   clearConfirmedBookingId() {
-    sessionStorage.removeItem(DEMO_CONFIRMED_BOOKING_KEY);
+    sessionStorage.removeItem('cinematix_demo_confirmed_booking');
   },
 };

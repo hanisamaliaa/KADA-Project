@@ -25,7 +25,7 @@ export default function BookingsPage() {
     if (!user) return;
     try {
       setError('');
-      const data = await bookingService.getMyBookings(user.id);
+      const data = await bookingService.getMyBookings(user._id || user.id);
       setBookings(data || []);
     } catch (error) {
       console.error('Error fetching bookings:', error);

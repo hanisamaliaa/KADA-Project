@@ -35,7 +35,7 @@ export default function MoviesPage() {
       setGenres(uniqueGenres);
     } catch (error) {
       console.error('Error fetching movies:', error);
-      setError('Could not load demo movies.');
+      setError('Could not load movies.');
     } finally {
       setLoading(false);
     }
@@ -59,15 +59,11 @@ export default function MoviesPage() {
       filtered = filtered.filter(movie => movie.status === selectedStatus);
     }
 
-    filtered = [...filtered].sort((a, b) => {
-      if (sortBy === 'release_date') {
-        return new Date(b.release_date).getTime() - new Date(a.release_date).getTime();
-      }
-      if (sortBy === 'rating') {
-        return (b.rating || 0) - (a.rating || 0);
-      }
-      return a.title.localeCompare(b.title);
-    });
+    if (sortBy === 'rating') {
+      filtered = [...filtered].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    } else if (sortBy === 'title') {
+      filtered = [...filtered].sort((a, b) => a.title.localeCompare(b.title));
+    }
 
     setFilteredMovies(filtered);
     setCurrentPage(1);

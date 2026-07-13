@@ -40,23 +40,22 @@ export default function HomePage() {
     try {
       const data = await movieService.getMovies();
       setMovies(data || []);
-      const nowShowingMovies = (data || []).filter((movie) => movie.status === 'now_showing');
-      const featuredPool = nowShowingMovies.length > 0 ? nowShowingMovies : (data || []);
+      const featuredPool = data || [];
       if (featuredPool.length > 0) {
         const randomIndex = Math.floor(Math.random() * featuredPool.length);
         setFeaturedMovie(featuredPool[randomIndex]);
       }
     } catch (error) {
       console.error('Error fetching movies:', error);
-      setError('Could not load demo movies.');
+      setError('Could not load movies.');
     } finally {
       setLoading(false);
     }
   };
 
-  const nowShowing = movies.filter((movie) => movie.status === 'now_showing');
-  const comingSoon = movies.filter((movie) => movie.status === 'coming_soon');
-  const backdrop = featuredMovie?.backdrop_url || featuredMovie?.poster_url || 'https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop';
+  const nowShowing = movies;
+  const comingSoon: typeof movies = [];
+  const backdrop = featuredMovie?.poster_url || 'https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop';
 
   if (loading) {
     return (
@@ -489,7 +488,7 @@ export default function HomePage() {
               <div className="w-20 h-20 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mx-auto mb-6">
                 <CalendarDays className="h-10 w-10 text-neutral-600" />
               </div>
-              <p className="text-neutral-400 text-base">No coming soon movies in demo data.</p>
+              <p className="text-neutral-400 text-base">No coming soon movies available.</p>
             </div>
           )}
         </div>

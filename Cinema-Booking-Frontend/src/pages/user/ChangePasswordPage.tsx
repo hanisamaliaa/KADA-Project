@@ -5,6 +5,7 @@ import { Eye, EyeOff, Loader2, ArrowLeft, CheckCircle, Lock, Shield } from 'luci
 import toast from 'react-hot-toast'
 import { motion, AnimatePresence } from 'framer-motion'
 import { clsx } from 'clsx'
+import api from '@/services/api'
 
 interface ChangePasswordForm {
   currentPassword: string
@@ -94,15 +95,19 @@ export default function ChangePasswordPage() {
   const hasLowercase = /[a-z]/.test(newPassword)
   const hasNumber = /[0-9]/.test(newPassword)
 
-  const onSubmit = async () => {
+  const onSubmit = async (data: ChangePasswordForm) => {
     setLoading(true)
     try {
-      // Mock: no backend call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      await api.post('/auth/change-password', {
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword,
+        confirmPassword: data.confirmPassword,
+      })
       toast.success('Password updated successfully!')
       setSuccess(true)
-    } catch {
-      toast.error('Something went wrong. Please try again.')
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Something went wrong. Please try again.'
+      toast.error(message)
     } finally {
       setLoading(false)
     }

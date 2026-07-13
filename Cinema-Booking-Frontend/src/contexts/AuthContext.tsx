@@ -1,8 +1,7 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { authService } from '@/services/authService';
 import type { AuthUser } from '@/types';
 
-// Define the types for the context value
 interface AuthContextType {
   user: AuthUser | null;
   isAdmin: boolean;
@@ -19,49 +18,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // THIS IS FRONTEND MOCK AUTHENTICATION ONLY.
-  // The persisted value is harmless demo state, not secure authentication.
-  // Students must replace this with backend auth, password hashing, JWT/cookies,
-  // auth middleware, protected routes, and admin authorization.
   useEffect(() => {
-    setUser(authService.getCurrentUser());
-    setLoading(false);
+    const initAuth = async () => {
+      const stored = authService.getStoredUser();
+      if (stored) {
+        try {
+          const freshUser = await authService.getCurrentUser();
+          if (freshUser) {
+            setUser(freshUser);
+          } else {
+            setUser(null);
+          }
+        } catch {
+          setUser(null);
+        }
+      }
+      setLoading(false);
+    };
+    initAuth();
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
     try {
-      const user = await authService.login(email, password);
-      setUser(user);
+      const userData = await authService.login(email, password);
+      setUser(userData);
       return { error: null };
     } catch (error: any) {
-      return { error };
+      const message = error.response?.data?.message || error.message || 'Invalid email or password';
+      return { error: new Error(message) };
     }
-  };
+  }, []);
 
-  const adminSignIn = async (username: string, password: string) => {
+  const adminSignIn = useCallback(async (username: string, password: string) => {
     try {
-      const user = await authService.adminLogin(username, password);
-      setUser(user);
+      const userData = await authService.adminLogin(username, password);
+      setUser(userData);
       return { error: null };
     } catch (error: any) {
-      return { error };
+      const message = error.response?.data?.message || error.message || 'Invalid admin credentials';
+      return { error: new Error(message) };
     }
-  };
+  }, []);
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = useCallback(async (email: string, password: string, fullName: string) => {
     try {
       await authService.register(email, password, fullName);
       return { error: null };
     } catch (error: any) {
-      return { error };
+      const message = error.response?.data?.message || error.message || 'Registration failed';
+      return { error: new Error(message) };
     }
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     await authService.logout();
     setUser(null);
-  };
-
+  }, []);
 
   const isAdmin = user?.role === 'admin';
 
@@ -82,7 +94,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Custom hook for easy access to the auth context
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {

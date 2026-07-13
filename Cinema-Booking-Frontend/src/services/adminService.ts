@@ -1,81 +1,123 @@
-import { mockUsers } from '@/data/mockUsers';
-import { mockWeeklyRevenue } from '@/data/mockAdminStats';
-import { delay, mockStore } from './mockStore';
+import api from './api';
+import { IBooking } from '@/types';
 
-// TODO STUDENT BACKEND INTEGRATION
-//
-// Students may later connect this dashboard to endpoints such as
-// GET /api/admin/stats and GET /api/admin/bookings, or their own API design.
+interface BackendBooking {
+  _id: string;
+  userId: { _id: string; name: string; email: string };
+  movieId: { _id: string; title: string };
+  showtimeId: { _id: string; date: string; time: string; studio: string; price: number };
+  seats: string[];
+  totalPrice: number;
+  status: 'confirmed' | 'cancelled';
+  createdAt: string;
+}
+
+const mapAdminBooking = (b: BackendBooking): IBooking => ({
+  _id: b._id,
+  user: {
+    id: b.userId._id,
+    _id: b.userId._id,
+    email: b.userId.email,
+    fullName: b.userId.name,
+    role: 'user',
+  },
+  showtime: {
+    _id: b.showtimeId._id,
+    movie: {
+      _id: b.movieId._id,
+      title: b.movieId.title,
+      genre: '',
+      duration: 0,
+      poster_url: '',
+      release_date: '',
+      status: 'now_showing',
+      createdAt: '',
+      updatedAt: '',
+    },
+    hall: {
+      _id: b.showtimeId._id,
+      hall_name: b.showtimeId.studio,
+      total_seats: 80,
+      layout_rows: 8,
+      layout_columns: 10,
+      createdAt: '',
+      updatedAt: '',
+    },
+    show_date: b.showtimeId.date,
+    start_time: b.showtimeId.time,
+    end_time: '',
+    ticket_price: b.showtimeId.price,
+  },
+  booking_date: b.createdAt,
+  total_seats: b.seats.length,
+  total_amount: b.totalPrice,
+  status: b.status,
+  selected_seats: b.seats,
+});
+
 export const adminService = {
   async getDashboardStats() {
-    await delay();
-    const movies = mockStore.getMovies();
-    const halls = mockStore.getHalls();
-    const showtimes = mockStore.getShowtimes();
-    const bookings = mockStore.getBookings();
-    const confirmedBookings = bookings.filter((booking) => booking.status === 'confirmed');
-    const totalRevenue = confirmedBookings.reduce((sum, booking) => sum + booking.total_amount, 0);
-    const movieCounts = confirmedBookings.reduce<Record<string, number>>((counts, booking) => {
-      const title = booking.showtime.movie.title;
-      counts[title] = (counts[title] || 0) + booking.total_seats;
-      return counts;
-    }, {});
-
-    return {
-      totalMovies: movies.length,
-      totalHalls: halls.length,
-      totalShowtimes: showtimes.length,
-      totalBookings: bookings.length,
-      totalUsers: mockUsers.filter((user) => user.role === 'user').length,
-      totalRevenue,
-      recentBookings: bookings.slice(0, 5),
-      popularMovies: Object.entries(movieCounts)
-        .map(([title, seats]) => ({ title, seats }))
-        .sort((a, b) => b.seats - a.seats)
-        .slice(0, 5),
-      weeklyRevenue: mockWeeklyRevenue,
-    };
+    try {
+      const res = await api.get('/admin/stats');
+      const d = res.data.data;
+      return {
+        totalMovies: d.totalMovies || 0,
+        totalHalls: 0,
+        totalShowtimes: d.totalShowtimes || 0,
+        totalBookings: d.totalBookings || 0,
+        totalUsers: d.totalUsers || 0,
+        totalRevenue: 0,
+        recentBookings: [],
+        popularMovies: [],
+        weeklyRevenue: [],
+      };
+    } catch {
+      return {
+        totalMovies: 0,
+        totalHalls: 0,
+        totalShowtimes: 0,
+        totalBookings: 0,
+        totalUsers: 0,
+        totalRevenue: 0,
+        recentBookings: [],
+        popularMovies: [],
+        weeklyRevenue: [],
+      };
+    }
   },
 
   async getAllBookings(filters: { status?: string; search?: string; movieId?: string; date?: string } = {}) {
-    await delay();
-    let bookings = mockStore.getBookings();
-    if (filters.status && filters.status !== 'all') {
-      bookings = bookings.filter((booking) => booking.status === filters.status);
+    try {
+      const res = await api.get('/admin/bookings');
+      let bookings: IBooking[] = (res.data.data || []).map(mapAdminBooking);
+
+      if (filters.status && filters.status !== 'all') {
+        bookings = bookings.filter((b) => b.status === filters.status);
+      }
+      if (filters.search) {
+        const q = filters.search.toLowerCase();
+        bookings = bookings.filter(
+          (b) =>
+            b.user.fullName.toLowerCase().includes(q) ||
+            b.user.email.toLowerCase().includes(q) ||
+            b.showtime.movie.title.toLowerCase().includes(q),
+        );
+      }
+      return bookings;
+    } catch {
+      return [];
     }
-    if (filters.movieId) {
-      bookings = bookings.filter((booking) => booking.showtime.movie._id === filters.movieId);
-    }
-    if (filters.date) {
-      bookings = bookings.filter((booking) => booking.showtime.show_date.startsWith(filters.date!));
-    }
-    if (filters.search) {
-      const query = filters.search.toLowerCase();
-      bookings = bookings.filter(
-        (booking) =>
-          booking._id.toLowerCase().includes(query) ||
-          booking.user.fullName.toLowerCase().includes(query) ||
-          booking.user.email.toLowerCase().includes(query) ||
-          booking.showtime.movie.title.toLowerCase().includes(query),
-      );
-    }
-    return bookings;
   },
 
   async getBookingById(id: string) {
-    await delay();
-    const booking = mockStore.getBookings().find((item) => item._id === id);
-    if (!booking) throw new Error('Booking not found');
-    return booking;
+    const res = await api.get(`/bookings/${id}`);
+    return mapAdminBooking(res.data.data);
   },
 
   async updateBookingStatus(id: string, status: 'pending' | 'confirmed' | 'cancelled') {
-    await delay();
-    const bookings = mockStore.getBookings();
-    const index = bookings.findIndex((booking) => booking._id === id);
-    if (index === -1) throw new Error('Booking not found');
-    bookings[index] = { ...bookings[index], status };
-    mockStore.setBookings(bookings);
-    return bookings[index];
+    if (status === 'cancelled') {
+      await api.delete(`/bookings/${id}`);
+    }
+    return { _id: id, status };
   },
 };
