@@ -24,7 +24,7 @@ const seedData = async () => {
   await User.create([
     {
       name: "Admin",
-      email: "c",
+      email: "admin@kada.com",
       password: adminPass,
       role: "admin",
       isVerified: true,

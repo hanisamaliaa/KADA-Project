@@ -53,10 +53,11 @@ const login = asyncHandler(async (req, res) => {
   const user = await authService.login(req.body);
   const { accessToken, refreshToken } = await authService.issueTokens(user);
   setAuthCookies(res, accessToken, refreshToken);
+  // Do NOT return the access token in the body — it lives only in the httpOnly cookie
+  // so JavaScript (and any XSS) cannot read it.
   res.status(200).json({
     success: true,
     message: "Login successful",
-    token: accessToken,
     data: publicUser(user),
   });
 });

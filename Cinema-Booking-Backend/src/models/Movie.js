@@ -32,8 +32,8 @@ const movieSchema = new mongoose.Schema({
 
   trailerUrl: {
     type: String,
-    required: true,
     trim: true,
+    // Optional — a YouTube/video URL for the trailer preview.
   },
 
   description: {
