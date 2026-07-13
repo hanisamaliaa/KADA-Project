@@ -186,8 +186,10 @@ export const showtimeService = {
     await api.delete(`/showtimes/${id}`);
   },
 
-  async getNowPlaying(): Promise<IMovie[]> {
-    const res = await api.get("/showtimes/now-playing");
+  async getNowPlaying(cinemaId?: string): Promise<IMovie[]> {
+    const params: Record<string, string> = {};
+    if (cinemaId) params.cinemaId = cinemaId;
+    const res = await api.get("/showtimes/now-playing", { params });
     return (res.data.data || []).map((m: BackendShowtime["movieId"]) => ({
       _id: m._id,
       title: m.title,
@@ -206,8 +208,10 @@ export const showtimeService = {
     }));
   },
 
-  async getComingSoon(): Promise<IMovie[]> {
-    const res = await api.get("/showtimes/coming-soon");
+  async getComingSoon(cinemaId?: string): Promise<IMovie[]> {
+    const params: Record<string, string> = {};
+    if (cinemaId) params.cinemaId = cinemaId;
+    const res = await api.get("/showtimes/coming-soon", { params });
     return (res.data.data || []).map((m: BackendShowtime["movieId"]) => ({
       _id: m._id,
       title: m.title,

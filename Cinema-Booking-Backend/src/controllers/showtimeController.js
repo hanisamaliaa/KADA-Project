@@ -224,7 +224,7 @@ const deleteShowtime = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, message: "Showtime deleted successfully" });
 });
 
-// GET /api/showtimes/now-playing   (Public)
+// GET /api/showtimes/now-playing?cinemaId=   (Public)
 const getNowPlaying = asyncHandler(async (req, res) => {
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
@@ -232,9 +232,19 @@ const getNowPlaying = asyncHandler(async (req, res) => {
   const oneMonthLater = new Date(startOfToday);
   oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
 
-  const showtimes = await Showtime.find({
+  const query = {
     date: { $gte: startOfToday, $lte: oneMonthLater },
-  }).populate("movieId");
+  };
+
+  if (req.query.cinemaId) {
+    const cinema = await Cinema.findById(req.query.cinemaId);
+    if (!cinema) {
+      return res.status(200).json({ success: true, data: [] });
+    }
+    query.cinema = req.query.cinemaId;
+  }
+
+  const showtimes = await Showtime.find(query).populate("movieId");
 
   const movieMap = new Map();
   for (const st of showtimes) {
@@ -246,7 +256,7 @@ const getNowPlaying = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, data: Array.from(movieMap.values()) });
 });
 
-// GET /api/showtimes/coming-soon   (Public)
+// GET /api/showtimes/coming-soon?cinemaId=   (Public)
 const getComingSoon = asyncHandler(async (req, res) => {
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
@@ -257,18 +267,30 @@ const getComingSoon = asyncHandler(async (req, res) => {
   const threeMonthsLater = new Date(startOfToday);
   threeMonthsLater.setMonth(threeMonthsLater.getMonth() + 3);
 
-  const nowPlayingShowtimes = await Showtime.find({
+  const nowPlayingQuery = {
     date: { $gte: startOfToday, $lte: oneMonthLater },
-  }).populate("movieId");
+  };
+  const comingSoonQuery = {
+    date: { $gt: oneMonthLater, $lte: threeMonthsLater },
+  };
+
+  if (req.query.cinemaId) {
+    const cinema = await Cinema.findById(req.query.cinemaId);
+    if (!cinema) {
+      return res.status(200).json({ success: true, data: [] });
+    }
+    nowPlayingQuery.cinema = req.query.cinemaId;
+    comingSoonQuery.cinema = req.query.cinemaId;
+  }
+
+  const nowPlayingShowtimes = await Showtime.find(nowPlayingQuery).populate("movieId");
 
   const nowPlayingMovieIds = new Set();
   for (const st of nowPlayingShowtimes) {
     if (st.movieId) nowPlayingMovieIds.add(st.movieId._id.toString());
   }
 
-  const comingSoonShowtimes = await Showtime.find({
-    date: { $gt: oneMonthLater, $lte: threeMonthsLater },
-  }).populate("movieId");
+  const comingSoonShowtimes = await Showtime.find(comingSoonQuery).populate("movieId");
 
   const movieMap = new Map();
   for (const st of comingSoonShowtimes) {

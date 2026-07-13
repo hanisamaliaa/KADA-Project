@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { Calendar, Clock, MapPin, Users, Ticket, ArrowLeft } from 'lucide-react'
+import { Calendar, Clock, MapPin, Users, Ticket, ArrowLeft, Printer } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { IBooking } from '@/types'
 import { useAuth } from '@/contexts/AuthContext'
@@ -251,6 +251,18 @@ export default function BookingDetailsPage() {
                     <p className="text-red-300 font-medium">
                       This booking has been cancelled.
                     </p>
+                  </div>
+                )}
+
+                {booking.status === 'confirmed' && (
+                  <div className="pt-4 no-print">
+                    <button
+                      onClick={() => window.print()}
+                      className="btn btn-secondary w-full"
+                    >
+                      <Printer className="h-4 w-4" />
+                      Print Ticket
+                    </button>
                   </div>
                 )}
               </div>

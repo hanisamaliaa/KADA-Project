@@ -1,17 +1,17 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, Clock, MapPin, Play, Search, Ticket, ChevronRight } from 'lucide-react';
+import { CalendarDays, Clock, MapPin, Play, Search, Ticket, ChevronRight, X } from 'lucide-react';
 import { IMovie } from '@/types';
 import MovieCard from '@/components/MovieCard';
 import { MovieCardSkeleton } from '@/components/LoadingSpinner';
 import { movieService } from '@/services/movieService';
 import { showtimeService } from '@/services/showtimeService';
-import { motion, useScroll, useTransform } from 'framer-motion';
-
-const TRAILER_VIDEO_ID = 'gMC8kkwbIQQ';
-const TRAILER_EMBED_URL = `https://www.youtube.com/embed/${TRAILER_VIDEO_ID}?autoplay=1&mute=1&loop=1&playlist=${TRAILER_VIDEO_ID}&controls=0&modestbranding=1&rel=0&playsinline=1&enablejsapi=1&disablekb=1&fs=0&iv_load_policy=3&hidecontrols=1&showinfo=0&color=white`;
+import { useCinema } from '@/contexts/CinemaContext';
+import { getYouTubeEmbedUrl, extractYouTubeVideoId } from '@/lib/youtube';
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 
 export default function HomePage() {
+  const { selectedCinemaId } = useCinema();
   const [nowPlaying, setNowPlaying] = useState<IMovie[]>([]);
   const [comingSoon, setComingSoon] = useState<IMovie[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,6 +19,8 @@ export default function HomePage() {
   const [error, setError] = useState('');
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const heroRef = useRef<HTMLDivElement>(null);
+  const [trailerOpen, setTrailerOpen] = useState(false);
+  const [trailerUrl, setTrailerUrl] = useState('');
 
   const { scrollY } = useScroll();
   const heroOpacity = useTransform(scrollY, [0, 600], [1, 0]);
@@ -28,7 +30,17 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchMovies();
-  }, []);
+  }, [selectedCinemaId]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && trailerOpen) {
+        closeTrailer();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [trailerOpen]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!heroRef.current) return;
@@ -41,10 +53,11 @@ export default function HomePage() {
   const fetchMovies = async () => {
     try {
       setError('');
+      setLoading(true);
       const [allMovies, nowPlayingData, comingSoonData] = await Promise.all([
         movieService.getMovies(),
-        showtimeService.getNowPlaying().catch(() => []),
-        showtimeService.getComingSoon().catch(() => []),
+        showtimeService.getNowPlaying(selectedCinemaId || undefined).catch(() => []),
+        showtimeService.getComingSoon(selectedCinemaId || undefined).catch(() => []),
       ]);
 
       const allMapped: IMovie[] = (allMovies || []).map((m: IMovie) => ({
@@ -64,13 +77,15 @@ export default function HomePage() {
         status: 'coming_soon' as const,
       }));
 
-      setNowPlaying(nowPlayingMapped.length > 0 ? nowPlayingMapped : allMapped);
+      setNowPlaying(nowPlayingMapped.length > 0 ? nowPlayingMapped : (selectedCinemaId ? [] : allMapped));
       setComingSoon(comingSoonMapped);
 
-      const featuredPool = nowPlayingMapped.length > 0 ? nowPlayingMapped : allMapped;
+      const featuredPool = nowPlayingMapped.length > 0 ? nowPlayingMapped : (selectedCinemaId ? comingSoonMapped : allMapped);
       if (featuredPool.length > 0) {
         const randomIndex = Math.floor(Math.random() * featuredPool.length);
         setFeaturedMovie(featuredPool[randomIndex]);
+      } else {
+        setFeaturedMovie(null);
       }
     } catch (error) {
       console.error('Error fetching movies:', error);
@@ -78,6 +93,21 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const openTrailer = (url: string) => {
+    const embedUrl = getYouTubeEmbedUrl(url);
+    if (embedUrl) {
+      setTrailerUrl(embedUrl);
+      setTrailerOpen(true);
+      document.body.style.overflow = 'hidden';
+    }
+  };
+
+  const closeTrailer = () => {
+    setTrailerOpen(false);
+    setTrailerUrl('');
+    document.body.style.overflow = '';
   };
 
   const backdrop = featuredMovie?.poster_url || 'https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop';
@@ -120,47 +150,34 @@ export default function HomePage() {
           onMouseMove={handleMouseMove}
           className="relative min-h-screen overflow-hidden"
         >
-          {/* YouTube Video Background */}
-          <div className="hero-video-container hero-fade-in">
-            {/* Fallback Poster Behind Video */}
-            <div
-              className="absolute inset-0 bg-cover bg-center hero-fallback"
-              style={{ backgroundImage: `url(${backdrop})` }}
-            />
+          {/* Poster Background */}
+          <div
+            className="absolute inset-0 bg-cover bg-center hero-fallback"
+            style={{ backgroundImage: `url(${backdrop})` }}
+          />
 
-            <div className="hero-iframe-wrapper">
-              <iframe
-                src={TRAILER_EMBED_URL}
-                title="Movie Trailer"
-                allow="autoplay; encrypted-media"
-                allowFullScreen={false}
-                className="hero-iframe"
-              />
-            </div>
+          {/* Cinematic Gradient Overlay */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.45) 45%, rgba(0,0,0,0.75) 100%)',
+            }}
+          />
 
-            {/* Cinematic Gradient Overlay */}
-            <div
-              className="absolute inset-0"
-              style={{
-                background: 'linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.45) 45%, rgba(0,0,0,0.75) 100%)',
-              }}
-            />
+          {/* Left-to-right gradient for text readability on left side */}
+          <div className="absolute inset-0 bg-gradient-to-r from-dark-950/70 via-dark-950/30 to-transparent" />
 
-            {/* Left-to-right gradient for text readability on left side */}
-            <div className="absolute inset-0 bg-gradient-to-r from-dark-950/70 via-dark-950/30 to-transparent" />
+          {/* Bottom fade for seamless section transition */}
+          <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-dark-950 via-dark-950/60 to-transparent" />
 
-            {/* Bottom fade for seamless section transition */}
-            <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-dark-950 via-dark-950/60 to-transparent" />
+          {/* Top fade for navbar blend */}
+          <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-dark-950/50 via-dark-950/15 to-transparent" />
 
-            {/* Top fade for navbar blend */}
-            <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-dark-950/50 via-dark-950/15 to-transparent" />
+          {/* Vignette effect */}
+          <div className="vignette" />
 
-            {/* Vignette effect */}
-            <div className="vignette" />
-
-            {/* Film grain texture */}
-            <div className="film-grain" />
-          </div>
+          {/* Film grain texture */}
+          <div className="film-grain" />
 
           <motion.div
             style={{ opacity: heroOpacity, scale: heroScale }}
@@ -308,13 +325,21 @@ export default function HomePage() {
                     <Ticket className="h-5 w-5 transition-transform duration-300 group-hover:rotate-12" />
                     Buy Tickets
                   </Link>
-                  <Link to={`/movies/${featuredMovie._id}`} className="btn btn-secondary btn-lg group">
-                    <div className="relative">
+                  {featuredMovie.trailer_url && extractYouTubeVideoId(featuredMovie.trailer_url) ? (
+                    <button
+                      onClick={() => openTrailer(featuredMovie.trailer_url || '')}
+                      className="btn btn-secondary btn-lg group"
+                    >
                       <Play className="h-5 w-5 transition-transform duration-300 group-hover:scale-125" />
-                    </div>
-                    View Details
-                    <ChevronRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                  </Link>
+                      Play Trailer
+                    </button>
+                  ) : (
+                    <Link to={`/movies/${featuredMovie._id}`} className="btn btn-secondary btn-lg group">
+                      <Play className="h-5 w-5 transition-transform duration-300 group-hover:scale-125" />
+                      View Details
+                      <ChevronRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                    </Link>
+                  )}
                 </motion.div>
               </motion.div>
             </div>
@@ -353,38 +378,21 @@ export default function HomePage() {
           transition={{ duration: 0.7, delay: 0.5 }}
           className="glass-panel mx-auto max-w-6xl p-6 sm:p-8"
         >
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_1fr_1fr_auto]">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_1fr_auto]">
             <label className="group">
-              <span className="mb-2.5 block text-[10px] font-semibold uppercase tracking-wider text-neutral-500">City</span>
+              <span className="mb-2.5 block text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Location</span>
               <div className="flex items-center gap-3 rounded-xl border border-white/[0.1] bg-white/[0.04] px-4 py-3.5 transition-all duration-300 group-focus-within:border-primary-500/50 group-focus-within:bg-white/[0.06] group-focus-within:shadow-lg group-focus-within:shadow-primary-500/10">
                 <MapPin className="h-4 w-4 text-primary-400" />
-                <select className="w-full bg-transparent text-sm font-medium text-white outline-none cursor-pointer">
-                  <option>Jakarta</option>
-                  <option>Bandung</option>
-                  <option>Surabaya</option>
-                </select>
+                <span className="text-sm font-medium text-white">
+                  {selectedCinemaId ? 'Filtered by selected cinema' : 'All Cinemas'}
+                </span>
               </div>
             </label>
             <label className="group">
-              <span className="mb-2.5 block text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Cinema</span>
+              <span className="mb-2.5 block text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Category</span>
               <div className="flex items-center gap-3 rounded-xl border border-white/[0.1] bg-white/[0.04] px-4 py-3.5 transition-all duration-300 group-focus-within:border-primary-500/50 group-focus-within:bg-white/[0.06] group-focus-within:shadow-lg group-focus-within:shadow-primary-500/10">
                 <Ticket className="h-4 w-4 text-primary-400" />
-                <select className="w-full bg-transparent text-sm font-medium text-white outline-none cursor-pointer">
-                  <option>Grand Indonesia</option>
-                  <option>Central Park</option>
-                  <option>Senayan City</option>
-                </select>
-              </div>
-            </label>
-            <label className="group">
-              <span className="mb-2.5 block text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Date</span>
-              <div className="flex items-center gap-3 rounded-xl border border-white/[0.1] bg-white/[0.04] px-4 py-3.5 transition-all duration-300 group-focus-within:border-primary-500/50 group-focus-within:bg-white/[0.06] group-focus-within:shadow-lg group-focus-within:shadow-primary-500/10">
-                <CalendarDays className="h-4 w-4 text-primary-400" />
-                <select className="w-full bg-transparent text-sm font-medium text-white outline-none cursor-pointer">
-                  <option>Today</option>
-                  <option>Tomorrow</option>
-                  <option>This Weekend</option>
-                </select>
+                <span className="text-sm font-medium text-white">Now Playing</span>
               </div>
             </label>
             <Link to="/movies" className="btn btn-primary self-end px-8 py-4 ripple">
@@ -458,7 +466,11 @@ export default function HomePage() {
               <div className="w-20 h-20 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mx-auto mb-6">
                 <Ticket className="h-10 w-10 text-neutral-600" />
               </div>
-              <p className="text-neutral-400 text-base">No movies currently showing.</p>
+              <p className="text-neutral-400 text-base">
+                {selectedCinemaId
+                  ? 'No movies currently playing at this cinema.'
+                  : 'No movies currently showing.'}
+              </p>
             </div>
           )}
         </div>
@@ -516,11 +528,62 @@ export default function HomePage() {
               <div className="w-20 h-20 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mx-auto mb-6">
                 <CalendarDays className="h-10 w-10 text-neutral-600" />
               </div>
-              <p className="text-neutral-400 text-base">No coming soon movies available.</p>
+              <p className="text-neutral-400 text-base">
+                {selectedCinemaId
+                  ? 'No upcoming movies at this cinema.'
+                  : 'No coming soon movies available.'}
+              </p>
             </div>
           )}
         </div>
       </section>
+
+      {/* Trailer Modal */}
+      <AnimatePresence>
+        {trailerOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+            onClick={closeTrailer}
+          >
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+
+            {/* Modal Content */}
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+              className="relative w-full max-w-[1100px] z-10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close Button */}
+              <button
+                onClick={closeTrailer}
+                className="absolute -top-12 right-0 sm:right-0 sm:-top-12 flex items-center justify-center w-10 h-10 rounded-full bg-white/10 text-white hover:bg-white/20 transition-all duration-200 z-20"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              {/* Iframe Container */}
+              <div className="relative w-full overflow-hidden rounded-2xl bg-black shadow-2xl" style={{ aspectRatio: '16/9' }}>
+                <iframe
+                  src={`${trailerUrl}?autoplay=1`}
+                  title="Movie Trailer"
+                  className="absolute inset-0 w-full h-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  allowFullScreen
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
