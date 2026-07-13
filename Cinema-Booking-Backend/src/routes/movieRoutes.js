@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const requireAdmin = require("../middlewares/requireAdmin");
 const authenticate = require("../middlewares/authenticate");
+const posterUpload = require("../middlewares/posterUpload");
 
 const {
   getMovies,
@@ -16,9 +17,9 @@ router.get("/", getMovies);
 
 router.get("/:id", getMovieDetail);
 
-router.post("/", authenticate, requireAdmin, createMovie);
+router.post("/", authenticate, requireAdmin, posterUpload, createMovie);
 
-router.put("/:id", authenticate, requireAdmin, updateMovie);
+router.put("/:id", authenticate, requireAdmin, posterUpload, updateMovie);
 
 router.delete("/:id", authenticate, requireAdmin, deleteMovie);
 
