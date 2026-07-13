@@ -26,7 +26,7 @@ export default function BookingDetailsPage() {
       setError('')
       const data = await bookingService.getBookingById(bookingId);
 
-      if (data.user.id !== user?.id && data.user._id !== user?.id && user?.role !== 'admin') {
+      if (data.user._id !== user?._id && data.user.id !== user?.id && user?.role !== 'admin') {
           throw new Error("You are not authorized to view this booking.");
       }
       

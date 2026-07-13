@@ -32,7 +32,7 @@ export default function ProfilePage() {
       if (!user) return;
       try {
         setError('');
-        setBookings(await bookingService.getMyBookings(user.id));
+        setBookings(await bookingService.getMyBookings(user._id || user.id));
       } catch (err) {
         console.error('Error loading bookings:', err);
         setError('Unable to load booking data. Please try again.');
@@ -69,7 +69,7 @@ export default function ProfilePage() {
           onRetry={() => {
             setLoading(true);
             setError('');
-            bookingService.getMyBookings(user.id)
+            bookingService.getMyBookings(user._id || user.id)
               .then(setBookings)
               .catch(() => setError('Unable to load booking data. Please try again.'))
               .finally(() => setLoading(false));
@@ -194,7 +194,7 @@ export default function ProfilePage() {
                 >
                   <div className="flex items-center space-x-3 text-neutral-300">
                     <Calendar className="h-5 w-5 text-primary-400 shrink-0" />
-                    <p className="text-sm">This profile uses frontend-only demo state for the starter.</p>
+                    <p className="text-sm">Your profile is managed securely via the backend.</p>
                   </div>
                 </motion.div>
               </>

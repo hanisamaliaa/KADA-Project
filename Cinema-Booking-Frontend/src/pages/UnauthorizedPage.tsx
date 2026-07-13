@@ -45,7 +45,7 @@ export default function UnauthorizedPage() {
           transition={{ duration: 0.5 }}
           className="text-neutral-400 mb-8"
         >
-          This demo route is reserved for the mock admin role. Frontend route guards are not security controls.
+          This route requires admin access. Please sign in with an admin account.
         </motion.p>
         <motion.div
           variants={fadeUp}

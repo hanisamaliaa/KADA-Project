@@ -145,7 +145,7 @@ export default function AdminLoginPage() {
 
           <div className="mt-6 text-center">
             <p className="text-neutral-500 text-sm">
-              Demo admin: admin@cinematix.test / admin123
+              Sign in with admin credentials.
             </p>
           </div>
         </motion.div>

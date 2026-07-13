@@ -216,7 +216,7 @@ export default function LoginPage() {
           {/* Demo Credentials */}
           <motion.div variants={fadeUp}>
             <div className="rounded-xl border border-primary-500/20 bg-primary-500/5 p-4 text-sm text-neutral-300">
-              Demo user: <span className="font-semibold text-white">user@cinematix.test</span> / <span className="font-semibold text-white">user123</span>
+              Register a new account or use existing credentials to sign in.
             </div>
           </motion.div>
 
