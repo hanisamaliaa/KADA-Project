@@ -27,12 +27,14 @@ const seedData = async () => {
     { name: "User Two", email: "user2@kada.com", password: userPass, role: "user", isVerified: true },
   ]);
 
+  // trailerUrl is optional (YouTube link for the trailer preview). "Inside Out 2"
+  // is intentionally left without one to show the no-trailer case still works.
   const movies = await Movie.create([
-    { title: "Avengers: Endgame", genre: "Action", duration: 181, rating: "PG-13", poster: "avengers.jpg", description: "The Avengers assemble once more to reverse Thanos' snap." },
-    { title: "Dune: Part Two", genre: "Sci-Fi", duration: 166, rating: "PG-13", poster: "dune.jpg", description: "Paul Atreides unites with the Fremen to wage war." },
+    { title: "Avengers: Endgame", genre: "Action", duration: 181, rating: "PG-13", poster: "avengers.jpg", trailerUrl: "https://www.youtube.com/watch?v=TcMBFSGVi1c", description: "The Avengers assemble once more to reverse Thanos' snap." },
+    { title: "Dune: Part Two", genre: "Sci-Fi", duration: 166, rating: "PG-13", poster: "dune.jpg", trailerUrl: "https://www.youtube.com/watch?v=Way9Dexny3w", description: "Paul Atreides unites with the Fremen to wage war." },
     { title: "Inside Out 2", genre: "Animation", duration: 96, rating: "PG", poster: "insideout2.jpg", description: "New emotions move into Riley's mind." },
-    { title: "Oppenheimer", genre: "Drama", duration: 180, rating: "R", poster: "oppenheimer.jpg", description: "The story of the father of the atomic bomb." },
-    { title: "The Batman", genre: "Action", duration: 176, rating: "PG-13", poster: "batman.jpg", description: "Batman uncovers corruption while pursuing the Riddler." },
+    { title: "Oppenheimer", genre: "Drama", duration: 180, rating: "R", poster: "oppenheimer.jpg", trailerUrl: "https://www.youtube.com/watch?v=uYPbbksJxIg", description: "The story of the father of the atomic bomb." },
+    { title: "The Batman", genre: "Action", duration: 176, rating: "PG-13", poster: "batman.jpg", trailerUrl: "https://www.youtube.com/watch?v=mqqft2x_Aa4", description: "Batman uncovers corruption while pursuing the Riddler." },
   ]);
 
   // Showtimes tomorrow so they are always bookable during evaluation.

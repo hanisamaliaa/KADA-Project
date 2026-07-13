@@ -30,6 +30,12 @@ const movieSchema = new mongoose.Schema({
     required: true,
   },
 
+  trailerUrl: {
+    type: String,
+    trim: true,
+    // Optional — a YouTube/video URL for the Netflix-style trailer autoplay.
+  },
+
   description: {
     type: String,
     required: true,
