@@ -10,6 +10,7 @@ import MoviesPage from './pages/MoviesPage'
 import MovieDetailsPage from './pages/MovieDetailsPage'
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
 import UnauthorizedPage from './pages/UnauthorizedPage'
 import NotFoundPage from './pages/NotFoundPage'
 
@@ -21,6 +22,7 @@ import SeatSelectionPage from './pages/user/SeatSelectionPage'
 import PaymentPage from './pages/user/PaymentPage'
 import BookingConfirmationPage from './pages/user/BookingConfirmationPage'
 import ProfilePage from './pages/user/ProfilePage'
+import ChangePasswordPage from './pages/user/ChangePasswordPage'
 
 // Admin pages
 import AdminLoginPage from './pages/admin/AdminLoginPage'
@@ -59,6 +61,7 @@ function App() {
         } />
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
+        <Route path="forgot-password" element={<ForgotPasswordPage />} />
 
         {/* Protected user routes */}
         <Route path="bookings" element={
@@ -84,6 +87,11 @@ function App() {
         <Route path="profile" element={
           <ProtectedRoute>
             <ProfilePage />
+          </ProtectedRoute>
+        } />
+        <Route path="change-password" element={
+          <ProtectedRoute>
+            <ChangePasswordPage />
           </ProtectedRoute>
         } />
         <Route path="payment" element={

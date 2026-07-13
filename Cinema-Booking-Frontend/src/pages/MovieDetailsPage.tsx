@@ -4,6 +4,7 @@ import { Calendar, Clock, Globe, MapPin, Play, Star, Ticket, Users } from 'lucid
 import { IMovie, IShowtime } from '@/types';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorMessage from '@/components/ErrorMessage';
+import RecommendationSection from '@/components/RecommendationSection';
 import { movieService } from '@/services/movieService';
 import { showtimeService } from '@/services/showtimeService';
 import { motion } from 'framer-motion';
@@ -333,6 +334,11 @@ export default function MovieDetailsPage() {
             </motion.div>
           </aside>
         </div>
+      </div>
+
+      {/* Recommendations */}
+      <div className="max-w-7xl mx-auto px-4 py-14 sm:px-6 lg:px-8">
+        <RecommendationSection movieId={movie._id} />
       </div>
     </div>
   );

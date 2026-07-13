@@ -1,7 +1,7 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, MapPin, Settings, Ticket, User, ChevronDown } from 'lucide-react';
+import { LogOut, MapPin, Settings, Ticket, User, ChevronDown, Film } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,6 +13,15 @@ export default function Header() {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleSignOut = async () => {
     try {
@@ -39,51 +48,64 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-dark-950/70 backdrop-blur-2xl supports-[backdrop-filter]:bg-dark-950/60">
+    <header className={clsx(
+      "fixed top-0 left-0 right-0 z-50 transition-all duration-500",
+      scrolled 
+        ? "bg-dark-950/80 backdrop-blur-[28px] border-b border-white/[0.06] shadow-2xl shadow-black/30" 
+        : "bg-transparent backdrop-blur-[6px]"
+    )}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-20">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 group">
-          <img
-          src={logo}
-          alt="CineLux Logo"
-          className="h-10 w-10 transition-transform duration-300 group-hover:scale-110"
-          />
-          <span className="text-lg font-display font-bold text-white tracking-tight">
-            CINE<span className="text-primary-400">LUX</span>
-          </span>
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="relative">
+              <img
+                src={logo}
+                alt="CineLux Logo"
+                className="h-11 w-11 transition-all duration-500 group-hover:scale-110 group-hover:rotate-3"
+              />
+              <div className="absolute inset-0 bg-primary-500/30 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xl font-display font-bold text-white tracking-tight">
+                CINE<span className="text-gradient-premium">LUX</span>
+              </span>
+              <span className="text-[9px] font-medium uppercase tracking-[0.3em] text-neutral-500 -mt-0.5">Premium Cinema</span>
+            </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden md:flex items-center gap-2">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 to={item.href}
                 className={clsx(
-                  "relative px-4 py-2 text-sm font-medium rounded-xl transition-all duration-300",
+                  "relative px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-300 group",
                   isActive(item.href)
-                    ? 'text-white bg-white/[0.08]'
-                    : 'text-neutral-400 hover:text-white hover:bg-white/[0.05]'
+                    ? 'text-white bg-white/[0.1]'
+                    : 'text-neutral-400 hover:text-white hover:bg-white/[0.06]'
                 )}
               >
                 {item.label}
                 {isActive(item.href) && (
                   <motion.div
                     layoutId="activeNav"
-                    className="absolute bottom-0 left-3 right-3 h-0.5 bg-gradient-to-r from-primary-400 to-primary-500 rounded-full"
+                    className="absolute bottom-0 left-4 right-4 h-0.5 bg-gradient-to-r from-[#FF2D75] to-[#FF7A18] rounded-full"
                     transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                   />
                 )}
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary-500/0 to-primary-500/0 group-hover:from-primary-500/5 group-hover:to-accent-500/5 transition-all duration-300" />
               </Link>
             ))}
           </nav>
 
           {/* User Menu */}
           <div className="flex items-center gap-3">
-            <button className="hidden lg:inline-flex items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3.5 py-2 text-xs font-medium text-neutral-300 hover:border-white/[0.1] hover:bg-white/[0.06] hover:text-white transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0">
-              <MapPin className="h-3.5 w-3.5 text-primary-400" />
+            <button className="hidden lg:inline-flex items-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.05] px-4 py-2.5 text-xs font-medium text-neutral-300 hover:border-white/[0.15] hover:bg-white/[0.08] hover:text-white transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 backdrop-blur-xl group">
+              <MapPin className="h-3.5 w-3.5 text-primary-400 group-hover:text-primary-300 transition-colors" />
               Jakarta
+              <ChevronDown className="h-3 w-3 text-neutral-500 group-hover:text-neutral-400 transition-colors" />
             </button>
 
             {user ? (
@@ -91,13 +113,13 @@ export default function Header() {
                 {isAdmin && (
                   <Link
                     to="/admin"
-                    className="hidden sm:inline-flex btn btn-secondary btn-sm"
+                    className="hidden sm:inline-flex items-center gap-2 btn btn-secondary btn-sm"
                   >
                     <Settings className="h-3.5 w-3.5" />
                     Admin
                   </Link>
                 )}
-                <Link to="/my-bookings" className="hidden sm:inline-flex btn btn-accent btn-sm">
+                <Link to="/my-bookings" className="hidden sm:inline-flex items-center gap-2 btn btn-primary btn-sm ripple">
                   <Ticket className="h-3.5 w-3.5" />
                   Tickets
                 </Link>
@@ -106,10 +128,10 @@ export default function Header() {
                 <div className="relative">
                   <button
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
-                    className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2 hover:border-white/[0.1] hover:bg-white/[0.06] transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0"
+                    className="flex items-center gap-2.5 rounded-xl border border-white/[0.1] bg-white/[0.05] px-3.5 py-2 hover:border-white/[0.15] hover:bg-white/[0.08] transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 backdrop-blur-xl group"
                   >
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary-500/20 to-primary-600/20 flex items-center justify-center ring-1 ring-primary-500/20">
-                      <User className="h-3.5 w-3.5 text-primary-400" />
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500/30 to-accent-500/30 flex items-center justify-center ring-2 ring-white/[0.1] group-hover:ring-primary-500/30 transition-all duration-300">
+                      <User className="h-4 w-4 text-primary-300" />
                     </div>
                     <span className="hidden sm:inline text-sm font-medium text-neutral-200 max-w-[100px] truncate">
                       {user.fullName || user.email}
@@ -124,17 +146,24 @@ export default function Header() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 8, scale: 0.96 }}
                         transition={{ duration: 0.2, ease: 'easeOut' }}
-                        className="absolute right-0 mt-2 w-56 rounded-2xl border border-white/[0.08] bg-dark-900/95 shadow-premium backdrop-blur-2xl py-1.5 overflow-hidden"
+                        className="absolute right-0 mt-3 w-64 rounded-2xl border border-white/[0.1] bg-dark-900/95 shadow-premium backdrop-blur-3xl py-2 overflow-hidden"
                       >
-                        <div className="px-4 py-3 border-b border-white/[0.06]">
-                          <p className="text-sm font-semibold text-white truncate">{user.fullName}</p>
-                          <p className="text-xs text-neutral-500 truncate mt-0.5">{user.email}</p>
+                        <div className="px-5 py-4 border-b border-white/[0.06]">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500/30 to-accent-500/30 flex items-center justify-center ring-2 ring-white/[0.1]">
+                              <User className="h-5 w-5 text-primary-300" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-white truncate">{user.fullName}</p>
+                              <p className="text-xs text-neutral-500 truncate">{user.email}</p>
+                            </div>
+                          </div>
                         </div>
-                        <div className="py-1.5">
+                        <div className="py-2">
                           <Link
                             to="/profile"
                             onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-neutral-300 hover:bg-white/[0.05] hover:text-white transition-colors"
+                            className="flex items-center gap-3 px-5 py-3 text-sm text-neutral-300 hover:bg-white/[0.06] hover:text-white transition-all duration-200"
                           >
                             <User className="h-4 w-4" />
                             Profile
@@ -142,16 +171,16 @@ export default function Header() {
                           <Link
                             to="/my-bookings"
                             onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-neutral-300 hover:bg-white/[0.05] hover:text-white transition-colors"
+                            className="flex items-center gap-3 px-5 py-3 text-sm text-neutral-300 hover:bg-white/[0.06] hover:text-white transition-all duration-200"
                           >
                             <Ticket className="h-4 w-4" />
                             My Bookings
                           </Link>
                         </div>
-                        <div className="border-t border-white/[0.06] pt-1.5 px-1.5">
+                        <div className="border-t border-white/[0.06] pt-2 px-2">
                           <button
                             onClick={() => { handleSignOut(); setUserMenuOpen(false); }}
-                            className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
+                            className="flex items-center gap-3 w-full px-5 py-3 text-sm text-red-400 hover:bg-red-500/10 rounded-xl transition-all duration-200"
                           >
                             <LogOut className="h-4 w-4" />
                             Sign Out
@@ -167,7 +196,7 @@ export default function Header() {
                 <Link to="/login" className="btn btn-secondary btn-sm">
                   Sign In
                 </Link>
-                <Link to="/register" className="btn btn-primary btn-sm">
+                <Link to="/register" className="btn btn-primary btn-sm ripple">
                   Get Started
                 </Link>
               </div>
@@ -176,7 +205,7 @@ export default function Header() {
             {/* Mobile menu toggle */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-xl text-neutral-400 hover:text-white hover:bg-white/[0.05] transition-all duration-300"
+              className="md:hidden p-2.5 rounded-xl text-neutral-400 hover:text-white hover:bg-white/[0.06] transition-all duration-300 backdrop-blur-xl"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 {mobileMenuOpen ? (
@@ -198,30 +227,30 @@ export default function Header() {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
-            className="md:hidden overflow-hidden border-t border-white/[0.06]"
+            className="md:hidden overflow-hidden border-t border-white/[0.06] bg-dark-950/95 backdrop-blur-3xl"
           >
-            <div className="px-4 py-3 space-y-1">
+            <div className="px-4 py-4 space-y-1">
               {navItems.map((item) => (
                 <Link
                   key={item.href}
                   to={item.href}
                   onClick={() => setMobileMenuOpen(false)}
                   className={clsx(
-                    "block px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200",
+                    "block px-5 py-3.5 rounded-xl text-sm font-medium transition-all duration-200",
                     isActive(item.href)
-                      ? 'text-white bg-white/[0.08]'
-                      : 'text-neutral-400 hover:text-white hover:bg-white/[0.05]'
+                      ? 'text-white bg-white/[0.1]'
+                      : 'text-neutral-400 hover:text-white hover:bg-white/[0.06]'
                   )}
                 >
                   {item.label}
                 </Link>
               ))}
               {!user && (
-                <div className="pt-3 flex gap-2">
+                <div className="pt-4 flex gap-3">
                   <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="btn btn-secondary flex-1">
                     Sign In
                   </Link>
-                  <Link to="/register" onClick={() => setMobileMenuOpen(false)} className="btn btn-primary flex-1">
+                  <Link to="/register" onClick={() => setMobileMenuOpen(false)} className="btn btn-primary flex-1 ripple">
                     Get Started
                   </Link>
                 </div>
