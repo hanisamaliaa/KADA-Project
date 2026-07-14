@@ -52,7 +52,7 @@ const login = async ({ email, password }) => {
     throw new AppError("Invalid email or password", 401);
   }
   if (!user.isVerified) {
-    throw new AppError("Please verify your email before logging in", 403);
+    throw new AppError("Please verify your email before logging in", 403, "EMAIL_NOT_VERIFIED");
   }
   return user; // full doc; caller issues tokens
 };
@@ -111,6 +111,11 @@ const resetPassword = async ({ email, code, newPassword }) => {
     throw new AppError("Invalid or expired reset code", 400);
   }
   user.password = await bcrypt.hash(newPassword, SALT_ROUNDS);
+  // Completing a reset proves control of the email inbox the code was sent to — the
+  // exact guarantee email verification provides. So a successful reset also verifies
+  // the account, unblocking users who never finished the initial verification step.
+  user.isVerified = true;
+  user.verification = { codeHash: null, expiresAt: null, attempts: 0 };
   user.passwordReset = { codeHash: null, expiresAt: null, attempts: 0 };
   user.tokenVersion += 1; // invalidate existing sessions
   user.refreshTokenHash = null;

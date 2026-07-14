@@ -102,16 +102,22 @@ const seedData = async () => {
     { cinema: cinemas[1]._id, name: "Studio 1", rows: 8, columns: 10, totalSeats: 80 },
   ]);
 
-  // Showtimes tomorrow so they are always bookable during evaluation.
+  // Now-playing showtimes: tomorrow, so they are always bookable during evaluation.
   const day = new Date();
   day.setDate(day.getDate() + 1);
 
-  const st = (movieIdx, cinemaIdx, hallIdx, time, endTime, price) => ({
+  // Coming-soon showtimes: ~2 months out. The coming-soon endpoint surfaces movies
+  // whose showtimes fall 1–3 months ahead and aren't already playing, so the two
+  // movies below (which have no near-term showtimes) appear only under "Coming Soon".
+  const comingSoonDay = new Date();
+  comingSoonDay.setDate(comingSoonDay.getDate() + 60);
+
+  const st = (movieIdx, cinemaIdx, hallIdx, time, endTime, price, date = day) => ({
     movieId: movies[movieIdx]._id,
     cinema: cinemas[cinemaIdx]._id,
     hall: halls[hallIdx]._id,
     studio: halls[hallIdx].name, // required string, mirrors the hall name
-    date: day,
+    date,
     time,
     endTime,
     price,
@@ -123,6 +129,9 @@ const seedData = async () => {
     st(1, 0, 1, "14:00", "16:45", 60000), // Dune @ Grand Indonesia / Studio 2
     st(1, 0, 1, "19:00", "21:45", 65000),
     st(4, 1, 2, "20:00", "23:00", 70000), // The Batman @ Bandung / Studio 1
+    // Coming soon (~2 months out) — these two movies appear only in "Coming Soon".
+    st(2, 0, 0, "13:00", "14:36", 55000, comingSoonDay), // Inside Out 2 @ Grand Indonesia
+    st(3, 1, 2, "18:00", "21:00", 75000, comingSoonDay), // Oppenheimer @ Bandung
   ];
   await Showtime.create(showtimeDocs);
 
