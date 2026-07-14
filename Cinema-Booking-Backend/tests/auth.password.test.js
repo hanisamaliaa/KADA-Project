@@ -57,3 +57,28 @@ test("change-password: wrong current → 400; correct rotates the password", asy
   const newLogin = await request(app).post("/api/auth/login").send({ email: "chg@x.com", password: "newpass123" });
   expect(newLogin.status).toBe(200);
 });
+
+test("unverified account: a password reset verifies it and enables login", async () => {
+  // Register WITHOUT verifying — simulates a user who closed the verify-email tab.
+  const email = "stuck@x.com";
+  await request(app)
+    .post("/api/auth/register")
+    .send({ name: "Stuck", email, password: "secret123", confirmPassword: "secret123" });
+
+  // Login is blocked while unverified (with the machine-readable code).
+  const blocked = await request(app).post("/api/auth/login").send({ email, password: "secret123" });
+  expect(blocked.status).toBe(403);
+  expect(blocked.body.code).toBe("EMAIL_NOT_VERIFIED");
+
+  // Recover via forgot-password → reset-password.
+  const forgot = await request(app).post("/api/auth/forgot-password").send({ email });
+  expect(forgot.body.devCode).toMatch(/^\d{6}$/);
+  const reset = await request(app)
+    .post("/api/auth/reset-password")
+    .send({ email, code: forgot.body.devCode, newPassword: "newpass123", confirmPassword: "newpass123" });
+  expect(reset.status).toBe(200);
+
+  // The reset proved inbox ownership, so the account is now verified → login works.
+  const login = await request(app).post("/api/auth/login").send({ email, password: "newpass123" });
+  expect(login.status).toBe(200);
+});
