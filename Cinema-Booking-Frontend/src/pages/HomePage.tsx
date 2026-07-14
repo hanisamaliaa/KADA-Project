@@ -10,6 +10,36 @@ import { useCinema } from '@/contexts/CinemaContext';
 import { getYouTubeEmbedUrl, extractYouTubeVideoId } from '@/lib/youtube';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 
+function buildBackgroundEmbedUrl(videoId: string): string {
+  const params = new URLSearchParams({
+    autoplay: '1',
+    mute: '1',
+    controls: '0',
+    loop: '1',
+    playsinline: '1',
+    rel: '0',
+    modestbranding: '1',
+    disablekb: '1',
+    fs: '0',
+    playlist: videoId,
+  });
+  return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
+}
+
+function usePrefersReducedMotion(): boolean {
+  const [prefersReduced, setPrefersReduced] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  });
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handler = (e: MediaQueryListEvent) => setPrefersReduced(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  return prefersReduced;
+}
+
 export default function HomePage() {
   const { selectedCinemaId } = useCinema();
   const [nowPlaying, setNowPlaying] = useState<IMovie[]>([]);
@@ -21,6 +51,15 @@ export default function HomePage() {
   const heroRef = useRef<HTMLDivElement>(null);
   const [trailerOpen, setTrailerOpen] = useState(false);
   const [trailerUrl, setTrailerUrl] = useState('');
+  const [bgTrailerLoaded, setBgTrailerLoaded] = useState(false);
+  const [bgTrailerError, setBgTrailerError] = useState(false);
+  const bgTrailerIframeRef = useRef<HTMLIFrameElement>(null);
+  const prefersReducedMotion = usePrefersReducedMotion();
+
+  const bgVideoId = featuredMovie?.trailer_url
+    ? extractYouTubeVideoId(featuredMovie.trailer_url)
+    : null;
+  const showBgTrailer = bgVideoId && !prefersReducedMotion && !bgTrailerError;
 
   const { scrollY } = useScroll();
   const heroOpacity = useTransform(scrollY, [0, 600], [1, 0]);
@@ -41,6 +80,27 @@ export default function HomePage() {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [trailerOpen]);
+
+  // Reset trailer loading state when featured movie changes
+  useEffect(() => {
+    setBgTrailerLoaded(false);
+    setBgTrailerError(false);
+  }, [featuredMovie?._id]);
+
+  // Pause background trailer when modal opens, resume when closes
+  useEffect(() => {
+    const iframe = bgTrailerIframeRef.current;
+    if (!iframe || !bgVideoId) return;
+    try {
+      const cmd = trailerOpen ? 'pauseVideo' : 'playVideo';
+      iframe.contentWindow?.postMessage(
+        JSON.stringify({ event: 'command', func: cmd, args: [] }),
+        '*',
+      );
+    } catch {
+      // Cross-origin restrictions may prevent postMessage; iframe will remain paused
+    }
+  }, [trailerOpen, bgVideoId]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!heroRef.current) return;
@@ -150,11 +210,29 @@ export default function HomePage() {
           onMouseMove={handleMouseMove}
           className="relative min-h-screen overflow-hidden"
         >
-          {/* Poster Background */}
+          {/* Poster Background (fallback) */}
           <div
             className="absolute inset-0 bg-cover bg-center hero-fallback"
             style={{ backgroundImage: `url(${backdrop})` }}
           />
+
+          {/* Background Trailer Video */}
+          {showBgTrailer && (
+            <div className="hero-video-container">
+              <iframe
+                ref={bgTrailerIframeRef}
+                key={`bg-trailer-${featuredMovie._id}-${bgVideoId}`}
+                className={`hero-iframe transition-opacity duration-700 ${bgTrailerLoaded ? 'opacity-100' : 'opacity-0'}`}
+                src={buildBackgroundEmbedUrl(bgVideoId)}
+                title=""
+                allow="autoplay; encrypted-media; picture-in-picture"
+                tabIndex={-1}
+                aria-hidden="true"
+                onLoad={() => setBgTrailerLoaded(true)}
+                onError={() => setBgTrailerError(true)}
+              />
+            </div>
+          )}
 
           {/* Cinematic Gradient Overlay */}
           <div
