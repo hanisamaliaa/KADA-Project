@@ -132,10 +132,13 @@ const createShowtime = asyncHandler(async (req, res) => {
     bookedSeats: [],
   });
 
-  const populated = await showtime
-    .populate("movieId")
-    .populate({ path: "cinema", select: "name city" })
-    .populate({ path: "hall", select: "name rows columns totalSeats" });
+  // Mongoose 9: Document.populate() returns a Promise (not a chainable doc), so
+  // pass all paths in one call — chaining .populate().populate() throws here.
+  const populated = await showtime.populate([
+    "movieId",
+    { path: "cinema", select: "name city" },
+    { path: "hall", select: "name rows columns totalSeats" },
+  ]);
 
   res.status(201).json({ success: true, data: populated });
 });

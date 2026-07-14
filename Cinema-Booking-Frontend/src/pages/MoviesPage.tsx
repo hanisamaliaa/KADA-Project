@@ -4,9 +4,12 @@ import { IMovie } from '@/types';
 import MovieCard from '@/components/MovieCard';
 import { MovieCardSkeleton } from '@/components/LoadingSpinner';
 import { movieService } from '@/services/movieService';
+import { showtimeService } from '@/services/showtimeService';
+import { useCinema } from '@/contexts/CinemaContext';
 import { motion } from 'framer-motion';
 
 export default function MoviesPage() {
+  const { selectedCinemaId } = useCinema();
   const [movies, setMovies] = useState<IMovie[]>([]);
   const [filteredMovies, setFilteredMovies] = useState<IMovie[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,17 +24,44 @@ export default function MoviesPage() {
 
   useEffect(() => {
     fetchMovies();
-  }, []);
+    // Re-fetch when the selected cinema changes so the list reflects that location.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCinemaId]);
 
   useEffect(() => {
     filterMovies();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [movies, searchTerm, selectedGenre, selectedStatus, sortBy]);
 
   const fetchMovies = async () => {
     try {
-      const data = await movieService.getMovies();
-      setMovies(data || []);
-      const uniqueGenres = [...new Set(data?.flatMap((movie: IMovie) => movie.genre || []).filter(Boolean) || [])];
+      setLoading(true);
+      // now-playing / coming-soon are derived from showtimes on the backend and are
+      // cinema-aware, so they give us BOTH the correct status and the location filter.
+      const [allMovies, nowPlaying, comingSoon] = await Promise.all([
+        movieService.getMovies(),
+        showtimeService.getNowPlaying(selectedCinemaId || undefined).catch(() => []),
+        showtimeService.getComingSoon(selectedCinemaId || undefined).catch(() => []),
+      ]);
+
+      const comingSoonIds = new Set(comingSoon.map((m) => m._id));
+
+      let list: IMovie[];
+      if (selectedCinemaId) {
+        // Only movies actually scheduled at the selected cinema (already status-tagged).
+        const byId = new Map<string, IMovie>();
+        nowPlaying.forEach((m) => byId.set(m._id, m));
+        comingSoon.forEach((m) => { if (!byId.has(m._id)) byId.set(m._id, m); });
+        list = Array.from(byId.values());
+      } else {
+        // All cinemas: show the full catalog, tagging the ones that are coming-soon.
+        list = (allMovies || []).map((m) =>
+          comingSoonIds.has(m._id) ? { ...m, status: 'coming_soon' as const } : m,
+        );
+      }
+
+      setMovies(list);
+      const uniqueGenres = [...new Set(list.flatMap((movie) => movie.genre || []).filter(Boolean))];
       setGenres(uniqueGenres);
     } catch (error) {
       console.error('Error fetching movies:', error);

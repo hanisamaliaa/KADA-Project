@@ -78,3 +78,40 @@ test("non-owner cannot read another user's booking → 403", async () => {
     .set("Cookie", u2);
   expect(res.status).toBe(403);
 });
+
+test("race: two users book the same seat at once → exactly one 201, one 409", async () => {
+  const { st1 } = await makeShowtimes();
+  const u1 = await userCookie();
+  const u2 = await userCookie();
+
+  // Fire both requests concurrently so they race for seat A1. The atomic
+  // findOneAndUpdate CAS in the controller guarantees only one can win.
+  const [r1, r2] = await Promise.all([
+    book(u1, st1._id.toString(), ["A1"]),
+    book(u2, st1._id.toString(), ["A1"]),
+  ]);
+  expect([r1.status, r2.status].sort()).toEqual([201, 409]);
+
+  // The seat is stored exactly once — no double reservation slipped through.
+  const seats = await request(app).get(`/api/showtimes/${st1._id}/seats`);
+  const bookedA1 = seats.body.data.bookedSeats.filter((s) => s === "A1");
+  expect(bookedA1).toHaveLength(1);
+});
+
+test("cannot book a showtime whose start time has already passed → 400", async () => {
+  const past = new Date(Date.now() - 24 * 60 * 60 * 1000); // yesterday
+  const movie = await Movie.create({
+    title: "Past", genre: ["Action"], duration: 120, rating: "PG-13", poster: "p.jpg", description: "d",
+  });
+  const cinema = await Cinema.create({ name: "Past Cinema", city: "Testville" });
+  const hall = await Hall.create({ cinema: cinema._id, name: "Studio 1", rows: 8, columns: 10, totalSeats: 80 });
+  const showtime = await Showtime.create({
+    movieId: movie._id, cinema: cinema._id, hall: hall._id, studio: hall.name,
+    date: past, time: "13:00", endTime: "15:00", price: 50,
+  });
+
+  const u1 = await userCookie();
+  const res = await book(u1, showtime._id.toString(), ["A1"]);
+  expect(res.status).toBe(400);
+  expect(res.body.message).toMatch(/past/i);
+});

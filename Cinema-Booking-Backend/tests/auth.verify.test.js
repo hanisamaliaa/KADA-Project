@@ -20,10 +20,13 @@ test("register returns 201 with a devCode and an unverified account", async () =
   expect(res.body.devCode).toMatch(/^\d{6}$/);
 });
 
-test("login before verification → 403", async () => {
+test("login before verification → 403 with EMAIL_NOT_VERIFIED code", async () => {
   await request(app).post("/api/auth/register").send(creds);
   const res = await request(app).post("/api/auth/login").send({ email: creds.email, password: creds.password });
   expect(res.status).toBe(403);
+  // Machine-readable code lets the client route the user to re-verify instead of
+  // showing a misleading "invalid credentials" message.
+  expect(res.body.code).toBe("EMAIL_NOT_VERIFIED");
 });
 
 test("wrong code → 400; correct code verifies and enables login", async () => {

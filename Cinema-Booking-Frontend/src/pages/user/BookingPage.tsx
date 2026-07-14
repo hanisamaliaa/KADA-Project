@@ -10,6 +10,7 @@ import BookingProgress from '@/components/BookingProgress';
 import { movieService } from '@/services/movieService';
 import { showtimeService } from '@/services/showtimeService';
 import { bookingService } from '@/services/bookingService';
+import { useCinema } from '@/contexts/CinemaContext';
 
 interface SeatSelectionData {
   movieId: string;
@@ -37,6 +38,7 @@ export default function BookingPage() {
   const { movieId } = useParams<{ movieId: string }>();
   const { showtimeId } = useParams<{ showtimeId: string }>();
   const navigate = useNavigate();
+  const { selectedCinemaId } = useCinema();
   
   const [movie, setMovie] = useState<IMovie | null>(null);
   const [showtimes, setShowtimes] = useState<IShowtime[]>([]);
@@ -167,6 +169,14 @@ export default function BookingPage() {
 
   const cinemaInfo = selectedShowtime?.cinema;
 
+  // When a cinema is selected in the header, only show that cinema's showtimes — but
+  // never hide the one the user already picked (e.g. if they deep-linked a showtime).
+  const visibleShowtimes = selectedCinemaId
+    ? showtimes.filter(
+        (s) => s.cinema?._id === selectedCinemaId || s._id === selectedShowtime?._id,
+      )
+    : showtimes;
+
   return (
     <div className="min-h-screen bg-dark-950 text-neutral-100 font-sans">
       <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-dark-950/70 backdrop-blur-2xl">
@@ -221,7 +231,12 @@ export default function BookingPage() {
               )}
             </div>
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none">
-            {showtimes.map((showtime) => (
+            {visibleShowtimes.length === 0 && (
+              <p className="py-4 text-sm text-neutral-500">
+                No showtimes at the selected cinema — switch to “All Cinemas” to see more.
+              </p>
+            )}
+            {visibleShowtimes.map((showtime) => (
                 <button
                     key={showtime._id}
                     className={`min-w-[180px] rounded-xl border p-4 text-left transition-all duration-300 ${

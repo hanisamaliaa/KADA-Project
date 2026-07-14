@@ -31,7 +31,13 @@ const errorHandler = (err, req, res, next) => {
     if (process.env.NODE_ENV === "production") message = "Internal server error";
   }
 
-  res.status(statusCode).json({ success: false, message });
+  const body = { success: false, message };
+  // Surface an explicit error code ONLY for our own operational AppErrors, so the
+  // client can branch reliably. `isOperational` guards against leaking incidental
+  // Node/Mongo codes (e.g. "ECONNREFUSED", numeric 11000) from unexpected errors.
+  if (err.isOperational && typeof err.code === "string") body.code = err.code;
+
+  res.status(statusCode).json(body);
 };
 
 module.exports = { notFound, errorHandler };
