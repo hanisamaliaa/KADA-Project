@@ -50,7 +50,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const message = error.response?.data?.message || error.message || 'Invalid email or password';
-      return { error: new Error(message) };
+      // Preserve the backend's machine-readable code + HTTP status so the caller can
+      // branch (e.g. route an unverified user to the verification page) without
+      // fragile message string-matching.
+      const err = new Error(message) as Error & { code?: string; status?: number };
+      err.code = error.response?.data?.code;
+      err.status = error.response?.status;
+      return { error: err };
     }
   }, []);
 

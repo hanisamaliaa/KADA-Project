@@ -71,12 +71,30 @@ const getBackendError = (error: unknown): string => {
 
 export const movieService = {
   async getMovies(filters: MovieFilters = {}) {
-    const params: Record<string, string> = {};
-    if (filters.search) params.search = filters.search;
-    if (filters.genre) params.genre = filters.genre;
+    const baseParams: Record<string, string> = {};
+    if (filters.search) baseParams.search = filters.search;
+    if (filters.genre) baseParams.genre = filters.genre;
 
-    const res = await api.get("/movies", { params });
-    let movies: IMovie[] = (res.data.data || []).map(mapMovie);
+    // The backend paginates (max 50 per page). Fetch page 1, then pull any remaining
+    // pages so the caller receives the FULL catalog. The Movies page paginates
+    // client-side, so it needs every movie — not just the backend's first page.
+    const PAGE_SIZE = 50;
+    const MAX_PAGES = 20; // safety cap (≤ 1000 movies)
+    const first = await api.get("/movies", {
+      params: { ...baseParams, page: "1", limit: String(PAGE_SIZE) },
+    });
+    const totalPages = Math.min(Number(first.data.totalPages) || 1, MAX_PAGES);
+
+    const rest = await Promise.all(
+      Array.from({ length: Math.max(totalPages - 1, 0) }, (_, i) =>
+        api.get("/movies", {
+          params: { ...baseParams, page: String(i + 2), limit: String(PAGE_SIZE) },
+        }),
+      ),
+    );
+
+    const raw = [first, ...rest].flatMap((r) => r.data.data || []);
+    let movies: IMovie[] = raw.map(mapMovie);
 
     if (filters.status && filters.status !== "all") {
       movies = movies.filter((m) => m.status === filters.status);

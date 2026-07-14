@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Film, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { authService } from '@/services/authService';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 
@@ -45,7 +46,21 @@ export default function LoginPage() {
     try {
       const { error } = await signIn(data.email, data.password);
       if (error) {
-        toast.error('Invalid email or password');
+        // Unverified account (e.g. the user closed the verify tab earlier): don't show
+        // a misleading "invalid credentials" message. Re-send a fresh code and take
+        // them to the verification page so they can finish and log in.
+        if ((error as { code?: string }).code === 'EMAIL_NOT_VERIFIED') {
+          try {
+            await authService.resendVerification(data.email);
+          } catch {
+            /* non-blocking: they can resend from the verify page */
+          }
+          toast('Please verify your email — we sent you a new code.', { icon: '✉️' });
+          navigate(`/verify-email?email=${encodeURIComponent(data.email)}`);
+          return;
+        }
+        // Show the real backend message (already client-safe & non-enumerating).
+        toast.error(error.message || 'Invalid email or password');
       } else {
         toast.success('Welcome back!');
         navigate(from, { replace: true });

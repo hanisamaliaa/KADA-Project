@@ -120,11 +120,13 @@ export default function Header() {
             <div className="relative" ref={locationRef}>
               <button
                 onClick={() => setLocationMenuOpen(!locationMenuOpen)}
-                className="hidden lg:inline-flex items-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.05] px-4 py-2.5 text-xs font-medium text-neutral-300 hover:border-white/[0.15] hover:bg-white/[0.08] hover:text-white transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 backdrop-blur-xl group"
+                className="inline-flex items-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.05] px-3 sm:px-4 py-2.5 text-xs font-medium text-neutral-300 hover:border-white/[0.15] hover:bg-white/[0.08] hover:text-white transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 backdrop-blur-xl group"
               >
-                <MapPin className="h-3.5 w-3.5 text-primary-400 group-hover:text-primary-300 transition-colors" />
-                {selectedCinema ? `${selectedCinema.name} — ${selectedCinema.city}` : 'All Cinemas'}
-                <ChevronDown className={clsx("h-3 w-3 text-neutral-500 group-hover:text-neutral-400 transition-transform duration-200", locationMenuOpen && "rotate-180")} />
+                <MapPin className="h-3.5 w-3.5 text-primary-400 group-hover:text-primary-300 transition-colors shrink-0" />
+                <span className="max-w-[92px] truncate sm:max-w-none">
+                  {selectedCinema ? `${selectedCinema.name} — ${selectedCinema.city}` : 'All Cinemas'}
+                </span>
+                <ChevronDown className={clsx("h-3 w-3 text-neutral-500 group-hover:text-neutral-400 transition-transform duration-200 shrink-0", locationMenuOpen && "rotate-180")} />
               </button>
 
               <AnimatePresence>
