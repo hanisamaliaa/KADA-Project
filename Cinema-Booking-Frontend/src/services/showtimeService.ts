@@ -1,4 +1,5 @@
 import api from "./api";
+import { resolvePosterUrl } from "@/lib/poster";
 import type { IHall, IMovie, IShowtime, ShowtimeInput } from "@/types";
 
 interface BackendShowtime {
@@ -48,7 +49,6 @@ interface BackendHall {
 
 const DEFAULT_POSTER =
   "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop";
-const isUrl = (s: string) => /^https?:\/\//i.test(s);
 
 const toEmbedUrl = (url: string): string => {
   if (!url) return "";
@@ -75,7 +75,7 @@ const mapShowtime = (s: BackendShowtime): IShowtime => {
       genre: normalizeGenres(movie.genre),
       duration: movie.duration,
       rating: movie.rating || "",
-      poster_url: isUrl(movie.poster) ? movie.poster : DEFAULT_POSTER,
+      poster_url: resolvePosterUrl(movie.poster) || DEFAULT_POSTER,
       trailer_url: toEmbedUrl(movie.trailerUrl || ""),
       description: movie.description,
       director: movie.director || "",
@@ -134,10 +134,19 @@ const mapHall = (h: BackendHall): IHall => ({
 });
 
 export const showtimeService = {
-  async getShowtimes(filters: { movieId?: string; date?: string } = {}) {
+  async getShowtimes(
+    filters: {
+      movieId?: string;
+      date?: string;
+      cinemaId?: string;
+      upcoming?: boolean;
+    } = {},
+  ) {
     const params: Record<string, string> = {};
     if (filters.movieId) params.movieId = filters.movieId;
     if (filters.date) params.date = filters.date;
+    if (filters.cinemaId) params.cinemaId = filters.cinemaId;
+    if (filters.upcoming !== undefined) params.upcoming = String(filters.upcoming);
 
     const res = await api.get("/showtimes", { params });
     return (res.data.data || []).map(mapShowtime);
@@ -148,8 +157,11 @@ export const showtimeService = {
     return mapShowtime(res.data.data);
   },
 
-  async getMovieShowtimes(movieId: string): Promise<IShowtime[]> {
-    return this.getShowtimes({ movieId });
+  async getMovieShowtimes(
+    movieId: string,
+    filters: { cinemaId?: string; upcoming?: boolean } = {},
+  ): Promise<IShowtime[]> {
+    return this.getShowtimes({ movieId, ...filters });
   },
 
   async createShowtime(data: ShowtimeInput) {
@@ -197,7 +209,7 @@ export const showtimeService = {
       genre: normalizeGenres(m.genre),
       duration: m.duration,
       rating: m.rating || "",
-      poster_url: isUrl(m.poster) ? m.poster : DEFAULT_POSTER,
+      poster_url: resolvePosterUrl(m.poster) || DEFAULT_POSTER,
       trailer_url: toEmbedUrl(m.trailerUrl || ""),
       release_date: "",
       status: "now_showing" as const,
@@ -219,7 +231,7 @@ export const showtimeService = {
       genre: normalizeGenres(m.genre),
       duration: m.duration,
       rating: m.rating || "",
-      poster_url: isUrl(m.poster) ? m.poster : DEFAULT_POSTER,
+      poster_url: resolvePosterUrl(m.poster) || DEFAULT_POSTER,
       trailer_url: toEmbedUrl(m.trailerUrl || ""),
       release_date: "",
       status: "coming_soon" as const,

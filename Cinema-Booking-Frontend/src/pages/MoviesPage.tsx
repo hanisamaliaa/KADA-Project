@@ -6,6 +6,7 @@ import { MovieCardSkeleton } from '@/components/LoadingSpinner';
 import { movieService } from '@/services/movieService';
 import { showtimeService } from '@/services/showtimeService';
 import { useCinema } from '@/contexts/CinemaContext';
+import { attachNearestShowtime } from '@/lib/showtime';
 import { motion } from 'framer-motion';
 
 export default function MoviesPage() {
@@ -24,6 +25,10 @@ export default function MoviesPage() {
 
   useEffect(() => {
     fetchMovies();
+    const timer = window.setInterval(() => {
+      fetchMovies();
+    }, 60_000);
+    return () => window.clearInterval(timer);
     // Re-fetch when the selected cinema changes so the list reflects that location.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCinemaId]);
@@ -38,10 +43,13 @@ export default function MoviesPage() {
       setLoading(true);
       // now-playing / coming-soon are derived from showtimes on the backend and are
       // cinema-aware, so they give us BOTH the correct status and the location filter.
-      const [allMovies, nowPlaying, comingSoon] = await Promise.all([
+      const [allMovies, nowPlaying, comingSoon, upcomingShowtimes] = await Promise.all([
         movieService.getMovies(),
         showtimeService.getNowPlaying(selectedCinemaId || undefined).catch(() => []),
         showtimeService.getComingSoon(selectedCinemaId || undefined).catch(() => []),
+        showtimeService
+          .getShowtimes({ cinemaId: selectedCinemaId || undefined, upcoming: true })
+          .catch(() => []),
       ]);
 
       const comingSoonIds = new Set(comingSoon.map((m) => m._id));
@@ -60,8 +68,9 @@ export default function MoviesPage() {
         );
       }
 
-      setMovies(list);
-      const uniqueGenres = [...new Set(list.flatMap((movie) => movie.genre || []).filter(Boolean))];
+      const listWithNearest = attachNearestShowtime(list, upcomingShowtimes);
+      setMovies(listWithNearest);
+      const uniqueGenres = [...new Set(listWithNearest.flatMap((movie) => movie.genre || []).filter(Boolean))];
       setGenres(uniqueGenres);
     } catch (error) {
       console.error('Error fetching movies:', error);

@@ -9,6 +9,7 @@ import { movieService } from '@/services/movieService';
 import { showtimeService } from '@/services/showtimeService';
 import { getYouTubeEmbedUrl, extractYouTubeVideoId } from '@/lib/youtube';
 import { motion } from 'framer-motion';
+import { isUpcomingShowtime } from '@/lib/showtime';
 
 export default function MovieDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -31,17 +32,14 @@ export default function MovieDetailsPage() {
       setLoading(true);
       const [movieData, showtimeData] = await Promise.all([
         movieService.getMovieById(movieId),
-        showtimeService.getMovieShowtimes(movieId),
+        showtimeService.getMovieShowtimes(movieId, { upcoming: true }),
       ]);
       setMovie(movieData);
       setShowtimes(showtimeData);
 
-      const futureShowtimes = showtimeData.filter(st => {
-        const showDate = new Date(st.show_date);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return showDate >= today;
-      });
+      const futureShowtimes = showtimeData.filter((st) =>
+        isUpcomingShowtime(st.show_date, st.start_time),
+      );
 
       if (futureShowtimes.length > 0) {
         setSelectedDate(futureShowtimes[0].show_date.split('T')[0]);
@@ -56,17 +54,12 @@ export default function MovieDetailsPage() {
 
   const availableDates = [...new Set(
     showtimes
-      .filter(st => {
-        const showDate = new Date(st.show_date);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return showDate >= today;
-      })
+      .filter((st) => isUpcomingShowtime(st.show_date, st.start_time))
       .map((showtime) => showtime.show_date.split('T')[0])
   )];
 
   const visibleShowtimes = showtimes.filter((showtime) => {
-    const isFuture = new Date(showtime.show_date) >= new Date(new Date().setHours(0, 0, 0, 0));
+    const isFuture = isUpcomingShowtime(showtime.show_date, showtime.start_time);
     return showtime.show_date.startsWith(selectedDate) && isFuture;
   });
 

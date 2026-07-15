@@ -8,6 +8,7 @@ import { movieService } from '@/services/movieService';
 import { showtimeService } from '@/services/showtimeService';
 import { useCinema } from '@/contexts/CinemaContext';
 import { getYouTubeEmbedUrl, extractYouTubeVideoId } from '@/lib/youtube';
+import { attachNearestShowtime, parseShowtimeLocalDateTime } from '@/lib/showtime';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 
 function buildBackgroundEmbedUrl(videoId: string): string {
@@ -69,6 +70,10 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchMovies();
+    const timer = window.setInterval(() => {
+      fetchMovies();
+    }, 60_000);
+    return () => window.clearInterval(timer);
   }, [selectedCinemaId]);
 
   useEffect(() => {
@@ -114,10 +119,13 @@ export default function HomePage() {
     try {
       setError('');
       setLoading(true);
-      const [allMovies, nowPlayingData, comingSoonData] = await Promise.all([
+      const [allMovies, nowPlayingData, comingSoonData, upcomingShowtimes] = await Promise.all([
         movieService.getMovies(),
         showtimeService.getNowPlaying(selectedCinemaId || undefined).catch(() => []),
         showtimeService.getComingSoon(selectedCinemaId || undefined).catch(() => []),
+        showtimeService
+          .getShowtimes({ cinemaId: selectedCinemaId || undefined, upcoming: true })
+          .catch(() => []),
       ]);
 
       const allMapped: IMovie[] = (allMovies || []).map((m: IMovie) => ({
@@ -137,10 +145,20 @@ export default function HomePage() {
         status: 'coming_soon' as const,
       }));
 
-      setNowPlaying(nowPlayingMapped.length > 0 ? nowPlayingMapped : (selectedCinemaId ? [] : allMapped));
-      setComingSoon(comingSoonMapped);
+      const allWithNearest = attachNearestShowtime(allMapped, upcomingShowtimes);
+      const nowPlayingWithNearest = attachNearestShowtime(nowPlayingMapped, upcomingShowtimes);
+      const comingSoonWithNearest = attachNearestShowtime(comingSoonMapped, upcomingShowtimes);
 
-      const featuredPool = nowPlayingMapped.length > 0 ? nowPlayingMapped : (selectedCinemaId ? comingSoonMapped : allMapped);
+      setNowPlaying(
+        nowPlayingWithNearest.length > 0
+          ? nowPlayingWithNearest
+          : (selectedCinemaId ? [] : allWithNearest),
+      );
+      setComingSoon(comingSoonWithNearest);
+
+      const featuredPool = nowPlayingWithNearest.length > 0
+        ? nowPlayingWithNearest
+        : (selectedCinemaId ? comingSoonWithNearest : allWithNearest);
       if (featuredPool.length > 0) {
         const randomIndex = Math.floor(Math.random() * featuredPool.length);
         setFeaturedMovie(featuredPool[randomIndex]);
@@ -171,6 +189,30 @@ export default function HomePage() {
   };
 
   const backdrop = featuredMovie?.poster_url || 'https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop';
+  const featuredReleaseDate = featuredMovie?.release_date
+    ? new Date(featuredMovie.release_date)
+    : null;
+  const featuredReleaseYear =
+    featuredReleaseDate instanceof Date &&
+    !Number.isNaN(featuredReleaseDate.getTime())
+      ? String(featuredReleaseDate.getFullYear())
+      : 'TBA';
+  const featuredNearestShowtime = featuredMovie?.nearest_showtime
+    ? parseShowtimeLocalDateTime(
+        featuredMovie.nearest_showtime.show_date,
+        featuredMovie.nearest_showtime.start_time,
+      )
+    : null;
+  const featuredNearestLabel = featuredNearestShowtime
+    ? `${featuredNearestShowtime.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+      })}, ${featuredNearestShowtime.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })}`
+    : null;
 
   if (loading) {
     return (
@@ -376,7 +418,7 @@ export default function HomePage() {
                 >
                   <span className="info-chip">
                     <CalendarDays className="h-4 w-4 text-primary-400" />
-                    {new Date(featuredMovie.release_date).getFullYear()}
+                    {featuredNearestLabel || featuredReleaseYear}
                   </span>
                   <span className="info-chip">
                     <Clock className="h-4 w-4 text-primary-400" />

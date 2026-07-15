@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Calendar, Clock, Ticket, Play, ChevronRight } from 'lucide-react';
 import type { IMovie } from '@/types';
 import { motion } from 'framer-motion';
+import { parseShowtimeLocalDateTime } from '@/lib/showtime';
 
 interface MovieCardProps {
   movie: IMovie;
@@ -9,7 +10,30 @@ interface MovieCardProps {
 
 export default function MovieCard({ movie }: MovieCardProps) {
   const isComingSoon = movie.status === 'coming_soon';
-  const releaseYear = new Date(movie.release_date).getFullYear();
+  const releaseDate = movie.release_date ? new Date(movie.release_date) : null;
+  const hasValidReleaseDate =
+    releaseDate instanceof Date && !Number.isNaN(releaseDate.getTime());
+  const releaseYear = hasValidReleaseDate
+    ? String(releaseDate.getFullYear())
+    : 'TBA';
+
+  const nearestShowtimeDate = movie.nearest_showtime
+    ? parseShowtimeLocalDateTime(
+        movie.nearest_showtime.show_date,
+        movie.nearest_showtime.start_time,
+      )
+    : null;
+
+  const nearestShowtimeLabel =
+    nearestShowtimeDate &&
+    `${nearestShowtimeDate.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    })}, ${nearestShowtimeDate.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    })}`;
 
   return (
     <motion.div
@@ -79,7 +103,7 @@ export default function MovieCard({ movie }: MovieCardProps) {
           </div>
           <div className="flex items-center gap-1.5">
             <Calendar className="h-3.5 w-3.5" />
-            <span>{releaseYear}</span>
+            <span>{nearestShowtimeLabel || releaseYear}</span>
           </div>
         </div>
         
@@ -89,7 +113,12 @@ export default function MovieCard({ movie }: MovieCardProps) {
           ))}
           {isComingSoon && (
             <span className="rounded-lg bg-accent-500/10 px-2.5 py-1 text-[10px] font-medium text-accent-400 border border-accent-500/20">
-              {new Date(movie.release_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              {hasValidReleaseDate
+                ? releaseDate.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                  })
+                : 'TBA'}
             </span>
           )}
         </div>
