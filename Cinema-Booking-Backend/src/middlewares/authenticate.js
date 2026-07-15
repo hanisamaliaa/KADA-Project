@@ -16,3 +16,4 @@ const authenticate = (req, res, next) => {
 };
 
 module.exports = authenticate;
+console.log("Authentication middleware loaded successfully.");
