@@ -5,12 +5,36 @@ const Cinema = require("../models/Cinema");
 const asyncHandler = require("../utils/asyncHandler");
 const AppError = require("../utils/AppError");
 
-// GET /api/showtimes?movieId=&date=   (Public)
+const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+const toTimeHHMM = (date) => {
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
+  return `${hh}:${mm}`;
+};
+
+const parseBooleanQuery = (raw, fieldName) => {
+  if (raw === undefined) return undefined;
+  if (raw === "true") return true;
+  if (raw === "false") return false;
+  throw new AppError(`${fieldName} must be "true" or "false".`, 400);
+};
+
+// GET /api/showtimes?movieId=&cinemaId=&date=&upcoming=   (Public)
 const getShowtimes = asyncHandler(async (req, res) => {
   const filter = {};
+  const upcoming = parseBooleanQuery(req.query.upcoming, "upcoming");
 
   if (req.query.movieId) {
     filter.movieId = req.query.movieId;
+  }
+
+  if (req.query.cinemaId) {
+    const cinema = await Cinema.findById(req.query.cinemaId);
+    if (!cinema) {
+      return res.status(200).json({ success: true, data: [] });
+    }
+    filter.cinema = req.query.cinemaId;
   }
 
   if (req.query.date) {
@@ -26,7 +50,26 @@ const getShowtimes = asyncHandler(async (req, res) => {
   const showtimes = await Showtime.find(filter)
     .populate("movieId")
     .populate({ path: "cinema", select: "name city" })
-    .populate({ path: "hall", select: "name rows columns totalSeats" });
+    .populate({ path: "hall", select: "name rows columns totalSeats" })
+    .sort({ date: 1, time: 1 });
+
+  if (upcoming === true) {
+    const now = new Date();
+    const currentTime = toTimeHHMM(now);
+    const startOfToday = new Date(now);
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const upcomingShowtimes = showtimes.filter((s) => {
+      if (!(s.date instanceof Date) || Number.isNaN(s.date.getTime())) return false;
+      if (s.date > startOfToday) return true;
+      if (s.date < startOfToday) return false;
+      if (!TIME_RE.test(s.time || "")) return false;
+      return s.time > currentTime;
+    });
+
+    return res.status(200).json({ success: true, data: upcomingShowtimes });
+  }
+
   res.status(200).json({ success: true, data: showtimes });
 });
 
