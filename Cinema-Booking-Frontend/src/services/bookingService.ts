@@ -1,4 +1,5 @@
 import api from "./api";
+import { resolvePosterUrl } from "@/lib/poster";
 import type { BookingInput, IBooking } from "@/types";
 
 interface BackendBooking {
@@ -33,7 +34,6 @@ interface BackendBooking {
 
 const DEFAULT_POSTER =
   "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop";
-const isUrl = (s: string) => /^https?:\/\//i.test(s);
 
 const normalizeGenres = (genre: string | string[] | undefined): string[] => {
   if (Array.isArray(genre)) return genre.filter(Boolean);
@@ -57,7 +57,7 @@ const mapBooking = (b: BackendBooking): IBooking => ({
       title: b.movieId.title,
       genre: normalizeGenres(b.movieId.genre),
       duration: b.movieId.duration,
-      poster_url: isUrl(b.movieId.poster) ? b.movieId.poster : DEFAULT_POSTER,
+      poster_url: resolvePosterUrl(b.movieId.poster) || DEFAULT_POSTER,
       rating: b.movieId.rating || "",
       description: b.movieId.description,
       trailer_url: b.movieId.trailerUrl,

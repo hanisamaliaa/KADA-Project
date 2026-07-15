@@ -16,15 +16,13 @@ import {
   Cell
 } from 'recharts';
 import { adminService } from '@/services/adminService';
-import { movieService } from '@/services/movieService';
 import { showtimeService } from '@/services/showtimeService';
 import type { IBooking, IHall, IMovie } from '@/types';
 
 export default function AdminReportsPage() {
-  const [movies, setMovies] = useState<IMovie[]>([]);
+  const [nowPlaying, setNowPlaying] = useState<IMovie[]>([]);
   const [halls, setHalls] = useState<IHall[]>([]);
   const [bookings, setBookings] = useState<IBooking[]>([]);
-  const [weeklyRevenue, setWeeklyRevenue] = useState<{ date: string; revenue: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [, setError] = useState('');
   const [activeStatusIndex, setActiveStatusIndex] = useState<number | null>(null);
@@ -37,16 +35,14 @@ export default function AdminReportsPage() {
     setLoading(true);
     try {
       setError('');
-      const [stats, moviesData, hallsData, bookingsData] = await Promise.all([
-        adminService.getDashboardStats(),
-        movieService.getMovies(),
+      const [hallsData, bookingsData, nowPlayingData] = await Promise.all([
         showtimeService.getHalls(),
         adminService.getAllBookings(),
+        showtimeService.getNowPlaying(),
       ]);
-      setMovies(moviesData);
       setHalls(hallsData);
       setBookings(bookingsData);
-      setWeeklyRevenue(stats.weeklyRevenue);
+      setNowPlaying(nowPlayingData);
     } catch (error) {
       console.error(error);
       setError('Unable to load report data. Please try again.');
@@ -57,11 +53,24 @@ export default function AdminReportsPage() {
 
   const today = new Date().toISOString().split('T')[0];
   const todayRevenue = bookings
-    .filter(b => b.status === 'confirmed' && b.booking_date.startsWith(today))
+    .filter(b => b.status === 'confirmed' && (b.booking_date || '').startsWith(today))
     .reduce((sum, b) => sum + b.total_amount, 0);
 
-  const currentMovies = movies.filter(m => m.is_now_showing);
-  const activeHalls = halls.filter(h => h.is_active);
+  // "Now Showing" = movies with a showtime in the next month (backend-derived).
+  const nowShowingCount = nowPlaying.length;
+  // There is no inactive-hall concept, so every hall counts as active.
+  const activeHallsCount = halls.length;
+
+  // Revenue per day for the last 7 days, computed from confirmed bookings.
+  const weeklyRevenue = Array.from({ length: 7 }, (_, idx) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - idx));
+    const key = d.toISOString().slice(0, 10);
+    const revenue = bookings
+      .filter(b => b.status === 'confirmed' && (b.booking_date || '').slice(0, 10) === key)
+      .reduce((sum, b) => sum + b.total_amount, 0);
+    return { date: d.toLocaleDateString('en-US', { weekday: 'short' }), revenue };
+  });
 
   if (loading) {
     return (
@@ -116,7 +125,7 @@ export default function AdminReportsPage() {
     },
     {
       title: 'Now Showing Movies',
-      value: currentMovies.length,
+      value: nowShowingCount,
       icon: Film,
       color: 'text-blue-400',
       bgColor: 'bg-blue-500/15',
@@ -124,7 +133,7 @@ export default function AdminReportsPage() {
     },
     {
       title: 'Active Halls',
-      value: activeHalls.length,
+      value: activeHallsCount,
       icon: Building,
       color: 'text-green-400',
       bgColor: 'bg-green-500/15',

@@ -115,3 +115,23 @@ test("cannot book a showtime whose start time has already passed → 400", async
   expect(res.status).toBe(400);
   expect(res.body.message).toMatch(/past/i);
 });
+
+test("owner reads their booking → 200 with populated user/movie/showtime", async () => {
+  const { st1 } = await makeShowtimes();
+  const u1 = await userCookie();
+
+  const created = await book(u1, st1._id.toString(), ["A1"]);
+  expect(created.status).toBe(201);
+  // The created booking must come back fully populated (userId was an ObjectId before).
+  expect(created.body.data.userId).toHaveProperty("email");
+  expect(created.body.data.movieId).toHaveProperty("title");
+
+  const res = await request(app)
+    .get(`/api/bookings/${created.body.data._id}`)
+    .set("Cookie", u1);
+  expect(res.status).toBe(200);
+  // Populated userId is what the ticket page needs for the owner check + customer display.
+  expect(res.body.data.userId).toHaveProperty("email");
+  expect(res.body.data.movieId).toHaveProperty("title");
+  expect(res.body.data.showtimeId).toHaveProperty("hall");
+});

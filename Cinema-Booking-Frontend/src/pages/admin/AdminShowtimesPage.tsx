@@ -207,6 +207,13 @@ const ShowtimeForm: React.FC<ShowtimeFormProps> = ({ showtimeToEdit, onClose, on
               {errors.end_time && <p className="text-red-400 text-sm mt-1">{errors.end_time.message}</p>}
             </div>
           </div>
+          <div className="rounded-xl border border-primary-500/15 bg-primary-500/[0.06] px-4 py-3 text-xs text-neutral-300">
+            <span className="font-semibold text-primary-300">How categories work:</span>{' '}
+            the show date decides where the movie appears for users — a date within the next
+            month lists it under <span className="font-medium text-white">Now Showing</span>;
+            a date roughly 1–3 months out lists it under{' '}
+            <span className="font-medium text-white">Coming Soon</span>.
+          </div>
           <div className="flex justify-end space-x-4 pt-4">
             <button type="button" onClick={onClose} className="btn btn-secondary">Cancel</button>
             <motion.button

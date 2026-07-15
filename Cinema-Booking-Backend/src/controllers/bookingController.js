@@ -92,14 +92,27 @@ const createBooking = asyncHandler(async (req, res) => {
     throw err; // forwarded to the central error handler → 500
   }
 
-  // STEP 6 — response
-  res.status(201).json({ success: true, data: booking });
+  // STEP 6 — return the fully populated booking so the client renders it directly.
+  // Single populate([]) call: chaining .populate() on a document throws under Mongoose 9.
+  const populated = await booking.populate([
+    { path: "movieId" },
+    {
+      path: "showtimeId",
+      populate: [
+        { path: "cinema", select: "name city" },
+        { path: "hall", select: "name rows columns totalSeats" },
+      ],
+    },
+    { path: "userId", select: "name email" },
+  ]);
+  res.status(201).json({ success: true, data: populated });
 });
 
 // GET /api/bookings/me
 const getMyBookings = asyncHandler(async (req, res) => {
   const bookings = await Booking.find({ userId: req.user.userId })
     .populate("movieId")
+    .populate("userId", "name email")
     .populate({
       path: "showtimeId",
       populate: [
@@ -114,6 +127,7 @@ const getMyBookings = asyncHandler(async (req, res) => {
 const getBookingById = asyncHandler(async (req, res) => {
   const booking = await Booking.findById(req.params.id)
     .populate("movieId")
+    .populate("userId", "name email")
     .populate({
       path: "showtimeId",
       populate: [
@@ -123,7 +137,8 @@ const getBookingById = asyncHandler(async (req, res) => {
     });
   if (!booking) throw new AppError("Booking not found.", 404);
 
-  const isOwner = booking.userId.toString() === req.user.userId;
+  // userId is now populated, so compare its _id (its .toString() would be "[object Object]").
+  const isOwner = (booking.userId._id || booking.userId).toString() === req.user.userId;
   const isAdmin = req.user.role === "admin";
   if (!isOwner && !isAdmin) throw new AppError("Forbidden.", 403);
 

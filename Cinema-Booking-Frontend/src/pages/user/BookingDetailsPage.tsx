@@ -24,12 +24,10 @@ export default function BookingDetailsPage() {
   const fetchBookingDetails = async (bookingId: string) => {
     try {
       setError('')
+      // The backend authorizes this request (403 for anyone who isn't the owner or an
+      // admin) and returns the booking with populated user/movie/showtime — so we just
+      // render what it returns rather than re-checking ownership on the client.
       const data = await bookingService.getBookingById(bookingId);
-
-      if (data.user._id !== user?._id && data.user.id !== user?.id && user?.role !== 'admin') {
-          throw new Error("You are not authorized to view this booking.");
-      }
-      
       setBooking(data)
     } catch (error) {
       console.error('Error fetching booking details:', error)

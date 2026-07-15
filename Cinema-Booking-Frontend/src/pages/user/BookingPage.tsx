@@ -11,6 +11,7 @@ import { movieService } from '@/services/movieService';
 import { showtimeService } from '@/services/showtimeService';
 import { bookingService } from '@/services/bookingService';
 import { useCinema } from '@/contexts/CinemaContext';
+import { isUpcomingShowtime } from '@/lib/showtime';
 
 interface SeatSelectionData {
   movieId: string;
@@ -67,7 +68,7 @@ export default function BookingPage() {
       setError('');
       const [movieData, showtimesData] = await Promise.all([
         movieService.getMovieById(id),
-        showtimeService.getMovieShowtimes(id)
+        showtimeService.getMovieShowtimes(id, { upcoming: true })
       ]);
 
       setMovie(movieData);
@@ -84,7 +85,7 @@ export default function BookingPage() {
     try {
       setError('');
       const showtime = await showtimeService.getShowtimeById(id);
-      const showtimesData = await showtimeService.getMovieShowtimes(showtime.movie._id);
+      const showtimesData = await showtimeService.getMovieShowtimes(showtime.movie._id, { upcoming: true });
       setMovie(showtime.movie);
       setShowtimes(showtimesData);
       setSelectedShowtime(showtime);
@@ -169,13 +170,13 @@ export default function BookingPage() {
 
   const cinemaInfo = selectedShowtime?.cinema;
 
-  // When a cinema is selected in the header, only show that cinema's showtimes — but
-  // never hide the one the user already picked (e.g. if they deep-linked a showtime).
-  const visibleShowtimes = selectedCinemaId
-    ? showtimes.filter(
-        (s) => s.cinema?._id === selectedCinemaId || s._id === selectedShowtime?._id,
-      )
-    : showtimes;
+  // Only future showtimes are bookable (the backend rejects past ones), and when a
+  // cinema is selected in the header we further limit to that location. This mirrors
+  // the backend's date+time check so users never pick a slot that will 400.
+  const visibleShowtimes = showtimes.filter((s) => {
+    const matchesCinema = !selectedCinemaId || s.cinema?._id === selectedCinemaId;
+    return matchesCinema && isUpcomingShowtime(s.show_date, s.start_time);
+  });
 
   return (
     <div className="min-h-screen bg-dark-950 text-neutral-100 font-sans">
@@ -233,7 +234,7 @@ export default function BookingPage() {
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none">
             {visibleShowtimes.length === 0 && (
               <p className="py-4 text-sm text-neutral-500">
-                No showtimes at the selected cinema — switch to “All Cinemas” to see more.
+                No upcoming showtimes{selectedCinemaId ? ' at the selected cinema' : ''}. Try “All Cinemas” or check back later.
               </p>
             )}
             {visibleShowtimes.map((showtime) => (

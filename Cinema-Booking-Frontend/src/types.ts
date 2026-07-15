@@ -25,6 +25,13 @@ export interface IMovie {
   rating?: string;
   status: 'now_showing' | 'coming_soon';
   is_now_showing?: boolean;
+  nearest_showtime?: {
+    showtime_id: string;
+    show_date: string;
+    start_time: string;
+    cinema_name?: string;
+    cinema_city?: string;
+  };
   createdAt: string;
   updatedAt: string;
 }

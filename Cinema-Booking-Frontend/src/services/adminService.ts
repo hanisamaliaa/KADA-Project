@@ -1,4 +1,5 @@
 import api from "./api";
+import { resolvePosterUrl } from "@/lib/poster";
 import { IBooking } from "@/types";
 
 interface BackendBooking {
@@ -23,7 +24,6 @@ interface BackendBooking {
 
 const DEFAULT_POSTER =
   "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&fit=crop";
-const isUrl = (s: string) => /^https?:\/\//i.test(s);
 
 const mapAdminBooking = (b: BackendBooking): IBooking => ({
   _id: b._id,
@@ -41,7 +41,7 @@ const mapAdminBooking = (b: BackendBooking): IBooking => ({
       title: b.movieId.title,
       genre: [],
       duration: 0,
-      poster_url: isUrl(b.movieId.poster || "") ? b.movieId.poster! : DEFAULT_POSTER,
+      poster_url: resolvePosterUrl(b.movieId.poster || "") || DEFAULT_POSTER,
       description: "",
       release_date: "",
       status: "now_showing",
@@ -130,8 +130,19 @@ export const adminService = {
     } = {},
   ) {
     try {
-      const res = await api.get("/admin/bookings");
-      let bookings: IBooking[] = (res.data.data || []).map(mapAdminBooking);
+      // The endpoint paginates (default 10), so page through to get ALL bookings —
+      // otherwise the report's revenue and status totals only reflect the first page.
+      const PAGE_SIZE = 100;
+      const first = await api.get("/admin/bookings", { params: { page: 1, limit: PAGE_SIZE } });
+      const totalPages = Math.min(Number(first.data.totalPages) || 1, 50);
+      const rest = await Promise.all(
+        Array.from({ length: Math.max(totalPages - 1, 0) }, (_, i) =>
+          api.get("/admin/bookings", { params: { page: i + 2, limit: PAGE_SIZE } }),
+        ),
+      );
+      let bookings: IBooking[] = [first, ...rest]
+        .flatMap((r) => r.data.data || [])
+        .map(mapAdminBooking);
 
       if (filters.status && filters.status !== "all") {
         bookings = bookings.filter((b) => b.status === filters.status);
