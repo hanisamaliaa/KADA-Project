@@ -26,9 +26,27 @@ const seedData = async () => {
   ]);
 
   await User.create([
-    { name: "Admin", email: "admin@kada.com", password: adminPass, role: "admin", isVerified: true },
-    { name: "User One", email: "user1@kada.com", password: userPass, role: "user", isVerified: true },
-    { name: "User Two", email: "user2@kada.com", password: userPass, role: "user", isVerified: true },
+    {
+      name: "Admin",
+      email: "admin@kada.com",
+      password: adminPass,
+      role: "admin",
+      isVerified: true,
+    },
+    {
+      name: "User One",
+      email: "user1@kada.com",
+      password: userPass,
+      role: "user",
+      isVerified: true,
+    },
+    {
+      name: "User Two",
+      email: "user2@kada.com",
+      password: userPass,
+      role: "user",
+      isVerified: true,
+    },
   ]);
 
   // trailerUrl is optional. "Inside Out 2" is intentionally left without one to show
@@ -97,9 +115,27 @@ const seedData = async () => {
   ]);
 
   const halls = await Hall.create([
-    { cinema: cinemas[0]._id, name: "Studio 1", rows: 8, columns: 10, totalSeats: 80 },
-    { cinema: cinemas[0]._id, name: "Studio 2", rows: 6, columns: 8, totalSeats: 48 },
-    { cinema: cinemas[1]._id, name: "Studio 1", rows: 8, columns: 10, totalSeats: 80 },
+    {
+      cinema: cinemas[0]._id,
+      name: "Studio 1",
+      rows: 8,
+      columns: 10,
+      totalSeats: 80,
+    },
+    {
+      cinema: cinemas[0]._id,
+      name: "Studio 2",
+      rows: 6,
+      columns: 8,
+      totalSeats: 48,
+    },
+    {
+      cinema: cinemas[1]._id,
+      name: "Studio 1",
+      rows: 8,
+      columns: 10,
+      totalSeats: 80,
+    },
   ]);
 
   // Booking rejects past showtimes, so a single "tomorrow" seed goes stale after a day.
