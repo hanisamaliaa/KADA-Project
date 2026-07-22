@@ -1,0 +1,52 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = "my-frontend"
+        CONTAINER_NAME = "my-frontend-container"
+        NETWORK_NAME = "cinema-network"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build --build-arg VITE_API_URL=/api -t ${IMAGE_NAME} .'
+            }
+        }
+
+        stage('Stop Old Container') {
+            steps {
+                sh 'docker stop ${CONTAINER_NAME} || true'
+                sh 'docker rm ${CONTAINER_NAME} || true'
+            }
+        }
+
+        stage('Run New Container') {
+            steps {
+                sh '''
+                    docker network create ${NETWORK_NAME} || true
+                    docker run -d \
+                      --network ${NETWORK_NAME} \
+                      -p 5173:80 \
+                      --name ${CONTAINER_NAME} \
+                      ${IMAGE_NAME}
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Frontend berhasil di-build dan dijalankan ulang!'
+        }
+        failure {
+            echo 'Ada yang gagal — cek log tiap stage di atas untuk tahu di step mana.'
+        }
+    }
+}

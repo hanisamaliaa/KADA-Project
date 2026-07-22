@@ -1,0 +1,54 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = "my-backend"
+        CONTAINER_NAME = "my-backend-container"
+        NETWORK_NAME = "cinema-network"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t ${IMAGE_NAME} .'
+            }
+        }
+
+        stage('Stop Old Container') {
+            steps {
+                sh 'docker stop ${CONTAINER_NAME} || true'
+                sh 'docker rm ${CONTAINER_NAME} || true'
+            }
+        }
+
+        stage('Run New Container') {
+            steps {
+                sh '''
+                    docker network create ${NETWORK_NAME} || true
+                    docker run -d \
+                      --network ${NETWORK_NAME} \
+                      -p 5001:5001 \
+                      --env-file .env \
+                      -e MONGO_URI=mongodb://host.docker.internal:27017/cinema-booking \
+                      --name ${CONTAINER_NAME} \
+                      ${IMAGE_NAME}
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Backend berhasil di-build dan dijalankan ulang!'
+        }
+        failure {
+            echo 'Ada yang gagal — cek log tiap stage di atas untuk tahu di step mana.'
+        }
+    }
+}
