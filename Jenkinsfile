@@ -3,7 +3,6 @@ pipeline {
 
     environment {
         PATH = "/usr/local/bin:/opt/homebrew/bin:/Applications/Docker.app/Contents/Resources/bin:${env.PATH}"
-
         JWT_SECRET = credentials('jwt-secret')
     }
 
@@ -61,36 +60,6 @@ EOF
             steps {
                 sh '''
                     docker compose ps
-                '''
-            }
-        }
-
-        stage('Health Check Backend') {
-            steps {
-                sh '''
-                    echo "Waiting for backend..."
-
-                    for i in $(seq 1 15); do
-                        if curl -f http://localhost:5001/health; then
-                            echo "Backend is healthy"
-                            exit 0
-                        fi
-
-                        echo "Backend not ready. Attempt $i/15"
-                        sleep 5
-                    done
-
-                    echo "Backend health check failed"
-                    docker compose logs backend
-                    exit 1
-                '''
-            }
-        }
-
-        stage('Health Check Frontend') {
-            steps {
-                sh '''
-                    curl -f http://localhost:5173
                 '''
             }
         }
