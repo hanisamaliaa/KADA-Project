@@ -1,0 +1,18 @@
+# 1. Choose the base environment (e.g., Node, Python, Java)
+FROM node:20-alpine
+
+# 2. Set the working directory inside the container
+WORKDIR /app
+
+# 3. Copy dependency files and install them
+COPY package*.json ./
+RUN npm install
+
+# 4. Copy the rest of your backend code
+COPY . .
+
+# 5. Expose the port your backend runs on (e.g., 3000, 8000, 5000)
+EXPOSE 5001
+
+# 6. Command to start your server
+CMD ["npm", "start"]
